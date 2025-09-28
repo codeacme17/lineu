@@ -8,7 +8,7 @@ const healthz: ToolCallback = (extra) => {
     content: [
       {
         type: "text",
-        text: "ok",
+        text: "ok health!",
       },
     ],
   };
