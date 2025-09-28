@@ -1,10 +1,42 @@
+import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { RequestHandlerExtra } from "@modelcontextprotocol/sdk/shared/protocol.js";
+import {
+  ServerRequest,
+  ServerNotification,
+} from "@modelcontextprotocol/sdk/types.js";
 import { tools } from "../tools/index.js";
+
+const TOOL_PREFIX = "lineu";
 
 export const toolRegister = (server: McpServer) => {
   try {
     Object.values(tools).forEach((tool) => {
-      server.tool(tool.name, tool.description, tool.callback);
+      const hasArgs = Object.keys(tool.inputSchema.shape).length > 0;
+
+      server.tool(
+        `${TOOL_PREFIX}-${tool.name}`,
+        tool.description,
+        tool.inputSchema.shape,
+        hasArgs
+          ? (
+              args: z.objectOutputType<
+                typeof tool.inputSchema.shape,
+                z.ZodTypeAny
+              >,
+              extra: RequestHandlerExtra<
+                ServerRequest,
+                ServerNotification
+              >
+            ) => (tool.callback as any)(args, extra)
+          : (
+              _: unknown,
+              extra: RequestHandlerExtra<
+                ServerRequest,
+                ServerNotification
+              >
+            ) => (tool.callback as any)(extra)
+      );
     });
   } catch (error) {
     console.error("Fatal error in toolRegister():", error);
