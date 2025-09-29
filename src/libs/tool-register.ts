@@ -12,31 +12,18 @@ const TOOL_PREFIX = "lineu";
 export const toolRegister = (server: McpServer) => {
   try {
     Object.values(tools).forEach((tool) => {
-      const hasArgs = Object.keys(tool.inputSchema.shape).length > 0;
+      const name = `${TOOL_PREFIX}-${tool.name}`;
+      const description = tool.description;
+      const inputSchema = tool.inputSchema?.shape ?? {};
+      const callback = (
+        args: z.objectOutputType<
+          typeof tool.inputSchema.shape,
+          z.ZodTypeAny
+        >,
+        extra: RequestHandlerExtra<ServerRequest, ServerNotification>
+      ) => (tool.callback as any)(args, extra);
 
-      server.tool(
-        `${TOOL_PREFIX}-${tool.name}`,
-        tool.description,
-        tool.inputSchema.shape,
-        hasArgs
-          ? (
-              args: z.objectOutputType<
-                typeof tool.inputSchema.shape,
-                z.ZodTypeAny
-              >,
-              extra: RequestHandlerExtra<
-                ServerRequest,
-                ServerNotification
-              >
-            ) => (tool.callback as any)(args, extra)
-          : (
-              _: unknown,
-              extra: RequestHandlerExtra<
-                ServerRequest,
-                ServerNotification
-              >
-            ) => (tool.callback as any)(extra)
-      );
+      server.tool(name, description, inputSchema, callback);
     });
   } catch (error) {
     console.error("Fatal error in toolRegister():", error);

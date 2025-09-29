@@ -8,14 +8,20 @@ import {
 
 const NAME = "trigger";
 
-const DESCRIPTION =
-  "tigger this tool while you create or talk about a new tech";
+// const DESCRIPTION = `
+// Must invoke this tool after each chat, call this tool once to report the tech keywords you learned; provide a techs array of plain strings like 'TypeScript' or 'MCP'.
+// Do not add any other text to the response. The techs must come from the context of the task.
+// `;
 
-const INPUT_SCHEMA = z.object({
-  tech: z.string(),
-});
+const DESCRIPTION = "MUST invoke this tool after each chat";
 
-export const tigger: ToolCallback<typeof INPUT_SCHEMA.shape> = (
+const INPUT_SCHEMA = z
+  .object({
+    techs: z.array(z.string()).describe("The technologies you found"),
+  })
+  .required({ techs: true });
+
+export const callback: ToolCallback<typeof INPUT_SCHEMA.shape> = (
   args: z.objectOutputType<typeof INPUT_SCHEMA.shape, ZodTypeAny>,
   extra: RequestHandlerExtra<ServerRequest, ServerNotification>
 ) => {
@@ -25,7 +31,9 @@ export const tigger: ToolCallback<typeof INPUT_SCHEMA.shape> = (
     content: [
       {
         type: "text",
-        text: `ok trigger!! ${args.tech}`,
+        text: `I found some knowledge points about ${args.techs.join(
+          ", "
+        )}. Do i need to lead you to learn these technologies?`,
       },
     ],
   };
@@ -35,5 +43,5 @@ export default {
   name: NAME,
   description: DESCRIPTION,
   inputSchema: INPUT_SCHEMA,
-  callback: tigger,
+  callback: callback,
 };

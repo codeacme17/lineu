@@ -1,13 +1,16 @@
 import { z } from "zod";
 import { ToolCallback } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { RequestHandlerExtra } from "@modelcontextprotocol/sdk/shared/protocol.js";
-import { ServerRequest, ServerNotification } from "@modelcontextprotocol/sdk/types.js";
+import {
+  ServerRequest,
+  ServerNotification,
+} from "@modelcontextprotocol/sdk/types.js";
 
 const NAME = "healthz";
 const DESCRIPTION = "Check the health of the server";
 const INPUT_SCHEMA = z.object({});
 
-const healthz: ToolCallback = (
+const callback: ToolCallback = (
   extra: RequestHandlerExtra<ServerRequest, ServerNotification>
 ) => {
   return {
@@ -24,5 +27,5 @@ export default {
   name: NAME,
   description: DESCRIPTION,
   inputSchema: INPUT_SCHEMA,
-  callback: healthz,
+  callback: callback,
 };
