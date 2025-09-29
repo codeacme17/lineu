@@ -25,8 +25,6 @@ export const callback: ToolCallback<typeof INPUT_SCHEMA.shape> = (
   args: z.objectOutputType<typeof INPUT_SCHEMA.shape, ZodTypeAny>,
   extra: RequestHandlerExtra<ServerRequest, ServerNotification>
 ) => {
-  console.error(args);
-
   return {
     content: [
       {
