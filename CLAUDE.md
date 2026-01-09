@@ -87,3 +87,4 @@ For local development, configure your MCP client (Cursor, Claude Desktop):
 - No test suite or linting configured
 - TypeScript strict mode enabled, target ES2022
 - VSCode extension requires VSCode 1.90.0+
+- Best use chinese

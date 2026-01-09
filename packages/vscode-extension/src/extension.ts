@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import * as path from "node:path";
 import { exec } from "node:child_process";
 import { promisify } from "node:util";
+import { readFile, unlink } from "node:fs/promises";
 
 import { generateCards } from "@lineu/lib";
 import { McpClient } from "./mcp/client.js";
@@ -11,8 +12,24 @@ import { showCardsWebview } from "./ui/webview.js";
 const execAsync = promisify(exec);
 
 let mcpClient: McpClient | null = null;
+let extensionContext: vscode.ExtensionContext | null = null;
 
 export function activate(context: vscode.ExtensionContext) {
+  extensionContext = context;
+
+  // Register URI handler for MCP server to push context
+  const uriHandler = vscode.window.registerUriHandler({
+    handleUri(uri: vscode.Uri) {
+      if (uri.path === "/capture") {
+        const params = new URLSearchParams(uri.query);
+        const filePath = params.get("file");
+        if (filePath) {
+          handleIncomingContext(context, filePath);
+        }
+      }
+    },
+  });
+
   const captureCommand = vscode.commands.registerCommand(
     "cards.captureContextAndGenerate",
     async () => {
@@ -110,6 +127,7 @@ export function activate(context: vscode.ExtensionContext) {
   );
 
   context.subscriptions.push(
+    uriHandler,
     captureCommand,
     openCollection,
     configureOpenRouter
@@ -121,6 +139,75 @@ export async function deactivate() {
     await mcpClient?.dispose();
   } catch {
     // Best effort cleanup.
+  }
+}
+
+/**
+ * Handle incoming context from MCP server via URI handler.
+ * The MCP server writes context to a temp file and triggers this URI.
+ */
+async function handleIncomingContext(
+  context: vscode.ExtensionContext,
+  filePath: string
+): Promise<void> {
+  try {
+    const workspaceRoot = getWorkspaceRoot();
+    if (!workspaceRoot) {
+      vscode.window.showErrorMessage("Open a workspace to receive cards.");
+      return;
+    }
+
+    // Read context from temp file
+    const content = await readFile(filePath, "utf-8");
+    const incomingContext = JSON.parse(content) as {
+      conversationText?: string;
+      diff?: string;
+      selection?: string;
+      metadata?: Record<string, unknown>;
+    };
+
+    // Generate cards from incoming context
+    const cards = generateCards({
+      contextText: incomingContext.conversationText || "",
+      diffText: incomingContext.diff || "",
+      selectionText: incomingContext.selection || "",
+    });
+
+    if (cards.length === 0) {
+      vscode.window.showInformationMessage("No cards generated from context.");
+      return;
+    }
+
+    // Show cards in webview
+    const store = new CardsStore(workspaceRoot);
+    showCardsWebview({
+      extensionUri: context.extensionUri,
+      cards,
+      mode: "deal",
+      onFavorite: async (card) => {
+        const result = await store.addCards([card]);
+        if (result.added.length > 0) {
+          vscode.window.showInformationMessage("Card saved.");
+        } else {
+          vscode.window.showInformationMessage("Card already saved.");
+        }
+      },
+    });
+
+    vscode.window.showInformationMessage(
+      `Received ${cards.length} card(s) from vibe-coding session.`
+    );
+
+    // Cleanup temp file
+    try {
+      await unlink(filePath);
+    } catch {
+      // Ignore cleanup errors
+    }
+  } catch (error) {
+    vscode.window.showErrorMessage(
+      `Failed to process incoming context: ${formatError(error)}`
+    );
   }
 }
 

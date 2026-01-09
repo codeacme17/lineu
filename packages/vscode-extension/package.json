@@ -21,7 +21,8 @@
   "activationEvents": [
     "onCommand:cards.captureContextAndGenerate",
     "onCommand:cards.openCollection",
-    "onCommand:cards.configureOpenRouterApiKey"
+    "onCommand:cards.configureOpenRouterApiKey",
+    "onUri"
   ],
   "contributes": {
     "commands": [
@@ -70,12 +71,13 @@
     }
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.18.2",
-    "@lineu/lib": "workspace:*"
+    "@lineu/lib": "workspace:*",
+    "@modelcontextprotocol/sdk": "^1.18.2"
   },
   "devDependencies": {
     "@types/node": "^24.5.2",
     "@types/vscode": "^1.90.0",
+    "@vscode/vsce": "^3.7.1",
     "typescript": "^5.9.2"
   },
   "license": "MIT"
