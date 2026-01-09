@@ -1,6 +1,44 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
+import * as fs from "node:fs";
+import * as path from "node:path";
+import * as os from "node:os";
+
+// 共享上下文文件 - VS Code 插件会监听这个文件
+const CONTEXT_DIR = path.join(os.homedir(), ".lineu");
+const CONTEXT_FILE = path.join(CONTEXT_DIR, "pending-contexts.json");
+
+type CapturedContext = {
+  id: string;
+  conversationText: string;
+  recentInputs: string[];
+  metadata: Record<string, unknown>;
+  timestamp: string;
+  processed: boolean;
+};
+
+function saveContext(ctx: CapturedContext): void {
+  try {
+    if (!fs.existsSync(CONTEXT_DIR)) {
+      fs.mkdirSync(CONTEXT_DIR, { recursive: true });
+    }
+    let contexts: CapturedContext[] = [];
+    if (fs.existsSync(CONTEXT_FILE)) {
+      try {
+        contexts = JSON.parse(fs.readFileSync(CONTEXT_FILE, "utf8"));
+      } catch {
+        contexts = [];
+      }
+    }
+    contexts.push(ctx);
+    // 保留最近 100 条
+    const trimmed = contexts.slice(-100);
+    fs.writeFileSync(CONTEXT_FILE, JSON.stringify(trimmed, null, 2), "utf8");
+  } catch {
+    // 写入失败不影响主流程
+  }
+}
 
 const InputSchema = {
   seedText: z.string().optional().describe("Raw context seed from the client."),
@@ -46,6 +84,16 @@ export async function startServer(): Promise<void> {
           cwd: process.cwd(),
           ...(args?.metadata ?? {}),
         };
+
+        // 保存到共享文件，供 VS Code 插件读取
+        saveContext({
+          id: `ctx_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+          conversationText,
+          recentInputs,
+          metadata,
+          timestamp: now,
+          processed: false,
+        });
 
         return {
           content: [

@@ -2,7 +2,7 @@
   "name": "vscode-knowledge-cards",
   "displayName": "Knowledge Cards",
   "version": "0.1.0",
-  "description": "A VS Code extension for draw-style knowledge cards",
+  "description": "Generate knowledge cards from AI conversations via MCP",
   "publisher": "lineu",
   "main": "./dist/extension.js",
   "engines": {
@@ -19,11 +19,27 @@
     "package": "vsce package --no-dependencies"
   },
   "activationEvents": [
-    "onCommand:cards.captureContextAndGenerate",
-    "onCommand:cards.openCollection",
-    "onCommand:cards.configureOpenRouterApiKey"
+    "onStartupFinished"
   ],
   "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "cardsView",
+          "title": "Knowledge Cards",
+          "icon": "resources/cards.svg"
+        }
+      ]
+    },
+    "views": {
+      "cardsView": [
+        {
+          "id": "cards.sidebar",
+          "name": "Cards",
+          "type": "webview"
+        }
+      ]
+    },
     "commands": [
       {
         "command": "cards.captureContextAndGenerate",
@@ -34,12 +50,12 @@
         "title": "Cards: Open Collection"
       },
       {
-        "command": "cards.configureOpenRouterApiKey",
-        "title": "Cards: Configure OpenRouter API Key"
+        "command": "cards.processPendingContexts",
+        "title": "Cards: Process Pending AI Contexts"
       }
     ],
     "configuration": {
-      "title": "Cards",
+      "title": "Knowledge Cards",
       "properties": {
         "cards.diffMode": {
           "type": "string",
@@ -50,27 +66,11 @@
           ],
           "default": "unstaged",
           "description": "Git diff mode used for card generation."
-        },
-        "cards.mcpServerPath": {
-          "type": "string",
-          "default": "",
-          "description": "Custom path to MCP server executable. Leave empty to use bundled server."
-        },
-        "cards.openRouterBaseUrl": {
-          "type": "string",
-          "default": "https://openrouter.ai/api/v1",
-          "description": "OpenRouter base URL for API calls."
-        },
-        "cards.openRouterModel": {
-          "type": "string",
-          "default": "",
-          "description": "Optional default OpenRouter model name."
         }
       }
     }
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.18.2",
     "@lineu/lib": "workspace:*"
   },
   "devDependencies": {

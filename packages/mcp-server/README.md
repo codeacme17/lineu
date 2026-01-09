@@ -1,33 +1,55 @@
-# @lineu/mcp-server
+# Lineu MCP Server
 
-MCP (Model Context Protocol) Server for Knowledge Cards.
+MCP (Model Context Protocol) server for capturing AI conversation contexts and generating knowledge cards.
 
-## Development
+## How It Works
 
-```bash
-# Install dependencies (from repo root)
-pnpm install
-
-# Build
-pnpm build
-
-# Watch mode
-pnpm watch
-
-# Run locally
-node dist/index.js
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  Cursor / Claude Desktop / Other AI Tools                       │
+│                                                                  │
+│  User: "How do I fix this authentication bug?"                   │
+│  AI: [provides solution]                                         │
+│                                                                  │
+│  → AI calls capture_context tool                                 │
+│                                                                  │
+└─────────────────────┬───────────────────────────────────────────┘
+                      │
+                      ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  MCP Server (this package)                                       │
+│                                                                  │
+│  Writes context to ~/.lineu/pending-contexts.json                │
+│                                                                  │
+└─────────────────────┬───────────────────────────────────────────┘
+                      │
+                      ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  VS Code Extension (watches the file)                            │
+│                                                                  │
+│  Detects new context → Generates knowledge cards → Shows in UI   │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
-Then you can setting up your client (e.g., Cursor, Claude Desktop) to point to the local server.
+## Setup
 
-### In Cursor
+### 1. Build the MCP Server
 
-Edit `~/.cursor/mcp.json`:
+```bash
+cd packages/mcp-server
+pnpm install
+pnpm build
+```
+
+### 2. Configure in Cursor
+
+Add to your Cursor MCP settings (`~/.cursor/mcp.json`):
 
 ```json
 {
   "mcpServers": {
-    "lineu": {
+    "lineu-cards": {
       "command": "node",
       "args": ["/path/to/lineu/packages/mcp-server/dist/index.js"]
     }
@@ -35,16 +57,14 @@ Edit `~/.cursor/mcp.json`:
 }
 ```
 
-After editing, **restart Cursor** to apply changes.
+### 3. Configure in Claude Desktop
 
-### In Claude Desktop
-
-Add to `claude_desktop_config.json`:
+Add to Claude Desktop config (`~/Library/Application Support/Claude/claude_desktop_config.json` on macOS):
 
 ```json
 {
   "mcpServers": {
-    "lineu": {
+    "lineu-cards": {
       "command": "node",
       "args": ["/path/to/lineu/packages/mcp-server/dist/index.js"]
     }
@@ -54,43 +74,41 @@ Add to `claude_desktop_config.json`:
 
 ## Usage
 
-### As CLI
+Once configured, you can ask the AI to capture context:
 
-```bash
-# Global install
-npm install -g @lineu/mcp-server
+> "Please capture this conversation about authentication debugging for my knowledge cards."
 
-# Run
-lineu-mcp-server
-```
+The AI will call the `capture_context` tool, which saves the context. The VS Code extension will automatically detect it and generate cards.
 
-### As npx
+## Tool: capture_context
 
-```bash
-npx @lineu/mcp-server
-```
+### Description
 
-### After Publishing to npm
+Capture the current AI conversation context for generating knowledge cards.
 
-Once published, you can use npx instead:
+### Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `conversationText` | string | The AI conversation or response text |
+| `userQuery` | string | The user's original question |
+| `codeContext` | string | Code snippets being discussed |
+| `metadata` | object | Additional metadata (file paths, language, etc.) |
+
+### Example
 
 ```json
 {
-  "mcpServers": {
-    "lineu": {
-      "command": "npx",
-      "args": ["@lineu/mcp-server"]
-    }
+  "conversationText": "To fix the authentication issue, you need to...",
+  "userQuery": "How do I fix this auth bug?",
+  "codeContext": "function authenticate() { ... }",
+  "metadata": {
+    "language": "typescript",
+    "file": "src/auth.ts"
   }
 }
 ```
 
-## Publish
+## Data Storage
 
-```bash
-# Build
-pnpm build
-
-# Publish to npm
-pnpm publish --access public
-```
+Contexts are stored in `~/.lineu/pending-contexts.json`. The VS Code extension monitors this file and processes new contexts automatically.
