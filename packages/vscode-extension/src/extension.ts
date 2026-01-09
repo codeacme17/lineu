@@ -3,8 +3,8 @@ import * as path from "node:path";
 import { exec } from "node:child_process";
 import { promisify } from "node:util";
 
+import { generateCards } from "@lineu/lib";
 import { McpClient } from "./mcp/client.js";
-import { generateCards } from "./cards/generator.js";
 import { CardsStore } from "./storage/cardsStore.js";
 import { showCardsWebview } from "./ui/webview.js";
 

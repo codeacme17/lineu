@@ -16,7 +16,7 @@ const OutputSchema = {
   metadata: z.record(z.unknown()).describe("Metadata about the capture."),
 };
 
-async function main() {
+export async function startServer(): Promise<void> {
   try {
     const server = new McpServer({
       name: "cards-mcp",
@@ -66,5 +66,3 @@ async function main() {
     process.exit(1);
   }
 }
-
-main();

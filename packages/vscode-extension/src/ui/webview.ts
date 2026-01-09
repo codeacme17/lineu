@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { Card } from "../cards/types.js";
+import type { Card } from "@lineu/lib";
 
 type WebviewMode = "deal" | "collection";
 

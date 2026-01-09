@@ -1,76 +1,15 @@
 {
-  "name": "knowledge-cards-mvp",
-  "displayName": "Knowledge Cards MVP",
-  "version": "0.0.1",
-  "description": "A VS Code extension MVP for draw-style knowledge cards.",
-  "publisher": "local",
-  "main": "./build/extension.js",
-  "engines": {
-    "vscode": "^1.90.0"
-  },
-  "categories": [
-    "Other"
-  ],
+  "name": "lineu",
+  "private": true,
   "scripts": {
-    "compile": "tsc -p ./",
-    "watch": "tsc -watch -p ./",
-    "vscode:prepublish": "npm run compile"
-  },
-  "activationEvents": [
-    "onCommand:cards.captureContextAndGenerate",
-    "onCommand:cards.openCollection",
-    "onCommand:cards.configureOpenRouterApiKey"
-  ],
-  "contributes": {
-    "commands": [
-      {
-        "command": "cards.captureContextAndGenerate",
-        "title": "Cards: Capture Context and Generate"
-      },
-      {
-        "command": "cards.openCollection",
-        "title": "Cards: Open Collection"
-      },
-      {
-        "command": "cards.configureOpenRouterApiKey",
-        "title": "Cards: Configure OpenRouter API Key"
-      }
-    ],
-    "configuration": {
-      "title": "Cards",
-      "properties": {
-        "cards.diffMode": {
-          "type": "string",
-          "enum": [
-            "unstaged",
-            "staged",
-            "both"
-          ],
-          "default": "unstaged",
-          "description": "Git diff mode used for card generation."
-        },
-        "cards.openRouterBaseUrl": {
-          "type": "string",
-          "default": "https://openrouter.ai/api/v1",
-          "description": "OpenRouter base URL for API calls."
-        },
-        "cards.openRouterModel": {
-          "type": "string",
-          "default": "",
-          "description": "Optional default OpenRouter model name."
-        }
-      }
-    }
-  },
-  "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.18.2",
-    "uuid": "^10.0.0",
-    "zod": "^3.25.76"
+    "build": "pnpm -r build",
+    "watch": "pnpm -r --parallel watch",
+    "clean": "pnpm -r clean"
   },
   "devDependencies": {
-    "@types/node": "^24.5.2",
-    "@types/uuid": "^10.0.0",
-    "@types/vscode": "^1.90.0",
     "typescript": "^5.9.2"
+  },
+  "engines": {
+    "pnpm": ">=8.0.0"
   }
 }
