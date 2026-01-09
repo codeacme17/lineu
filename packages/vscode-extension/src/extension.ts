@@ -29,6 +29,9 @@ let cardsViewProvider: CardsViewProvider | null = null;
 let contextWatcher: fs.FSWatcher | null = null;
 
 export function activate(context: vscode.ExtensionContext) {
+  console.log("🎴 Knowledge Cards extension activated!");
+  vscode.window.showInformationMessage("Knowledge Cards extension is ready!");
+
   // 注册侧边栏视图
   cardsViewProvider = new CardsViewProvider(context.extensionUri);
   context.subscriptions.push(
