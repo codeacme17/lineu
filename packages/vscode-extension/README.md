@@ -23,20 +23,20 @@ pnpm watch
 
 ## Commands
 
-| Command | Description |
-|---------|-------------|
+| Command                               | Description                         |
+| ------------------------------------- | ----------------------------------- |
 | `Cards: Capture Context and Generate` | Generate cards from current context |
-| `Cards: Open Collection` | View saved cards |
-| `Cards: Configure OpenRouter API Key` | Set API key |
+| `Cards: Open Collection`              | View saved cards                    |
+| `Cards: Configure OpenRouter API Key` | Set API key                         |
 
 ## Configuration
 
-| Setting | Default | Description |
-|---------|---------|-------------|
-| `cards.diffMode` | `unstaged` | Git diff mode: `unstaged`, `staged`, `both` |
-| `cards.mcpServerPath` | `""` | Custom MCP server path |
-| `cards.openRouterBaseUrl` | `https://openrouter.ai/api/v1` | API base URL |
-| `cards.openRouterModel` | `""` | Default model name |
+| Setting                   | Default                        | Description                                 |
+| ------------------------- | ------------------------------ | ------------------------------------------- |
+| `cards.diffMode`          | `unstaged`                     | Git diff mode: `unstaged`, `staged`, `both` |
+| `cards.mcpServerPath`     | `""`                           | Custom MCP server path                      |
+| `cards.openRouterBaseUrl` | `https://openrouter.ai/api/v1` | API base URL                                |
+| `cards.openRouterModel`   | `""`                           | Default model name                          |
 
 ## Build & Publish
 
