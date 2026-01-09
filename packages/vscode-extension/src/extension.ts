@@ -15,11 +15,11 @@ const execAsync = promisify(exec);
 const CONTEXT_DIR = path.join(os.homedir(), ".lineu");
 const CONTEXT_FILE = path.join(CONTEXT_DIR, "pending-contexts.json");
 
+// 与 MCP Server 的 CapturedContext 类型保持一致
 type CapturedContext = {
   id: string;
   conversationText: string;
-  userQuery: string;
-  codeContext: string;
+  recentInputs: string[];
   metadata: Record<string, unknown>;
   timestamp: string;
   processed: boolean;
@@ -193,10 +193,10 @@ async function processPendingContexts(
     // 为每个待处理的上下文生成卡片
     const allCards = [];
     for (const ctx of pending) {
+      // 合并 conversationText 和 recentInputs 作为上下文
       const contextText = [
-        ctx.userQuery,
         ctx.conversationText,
-        ctx.codeContext,
+        ...(ctx.recentInputs || []),
       ]
         .filter(Boolean)
         .join("\n\n");
