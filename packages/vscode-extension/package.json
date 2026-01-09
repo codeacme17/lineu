@@ -1,0 +1,82 @@
+{
+  "name": "vscode-knowledge-cards",
+  "displayName": "Knowledge Cards",
+  "version": "0.1.0",
+  "description": "A VS Code extension for draw-style knowledge cards",
+  "publisher": "lineu",
+  "main": "./dist/extension.js",
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "watch": "tsc -w -p tsconfig.json",
+    "clean": "rm -rf dist",
+    "vscode:prepublish": "pnpm run build",
+    "package": "vsce package --no-dependencies"
+  },
+  "activationEvents": [
+    "onCommand:cards.captureContextAndGenerate",
+    "onCommand:cards.openCollection",
+    "onCommand:cards.configureOpenRouterApiKey"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "cards.captureContextAndGenerate",
+        "title": "Cards: Capture Context and Generate"
+      },
+      {
+        "command": "cards.openCollection",
+        "title": "Cards: Open Collection"
+      },
+      {
+        "command": "cards.configureOpenRouterApiKey",
+        "title": "Cards: Configure OpenRouter API Key"
+      }
+    ],
+    "configuration": {
+      "title": "Cards",
+      "properties": {
+        "cards.diffMode": {
+          "type": "string",
+          "enum": [
+            "unstaged",
+            "staged",
+            "both"
+          ],
+          "default": "unstaged",
+          "description": "Git diff mode used for card generation."
+        },
+        "cards.mcpServerPath": {
+          "type": "string",
+          "default": "",
+          "description": "Custom path to MCP server executable. Leave empty to use bundled server."
+        },
+        "cards.openRouterBaseUrl": {
+          "type": "string",
+          "default": "https://openrouter.ai/api/v1",
+          "description": "OpenRouter base URL for API calls."
+        },
+        "cards.openRouterModel": {
+          "type": "string",
+          "default": "",
+          "description": "Optional default OpenRouter model name."
+        }
+      }
+    }
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.18.2",
+    "@lineu/lib": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^24.5.2",
+    "@types/vscode": "^1.90.0",
+    "typescript": "^5.9.2"
+  },
+  "license": "MIT"
+}

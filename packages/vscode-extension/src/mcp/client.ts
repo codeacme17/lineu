@@ -1,21 +1,14 @@
 import * as vscode from "vscode";
 import * as path from "node:path";
 import { existsSync } from "node:fs";
+import { exec } from "node:child_process";
+import { promisify } from "node:util";
 
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
+import type { CaptureContextInput, CaptureContextResult } from "@lineu/lib";
 
-export type CaptureContextResult = {
-  conversationText: string;
-  recentInputs: string[];
-  metadata: Record<string, unknown>;
-};
-
-export type CaptureContextInput = {
-  seedText?: string;
-  recentInputs?: string[];
-  metadata?: Record<string, string>;
-};
+const execAsync = promisify(exec);
 
 export class McpClient {
   private client: Client | null = null;
@@ -76,10 +69,10 @@ export class McpClient {
   }
 
   private async connect(): Promise<void> {
-    const serverPath = this.context.asAbsolutePath("build/mcp/server.js");
-    if (!existsSync(serverPath)) {
+    const serverPath = await this.resolveMcpServerPath();
+    if (!serverPath || !existsSync(serverPath)) {
       throw new Error(
-        `MCP server not found at ${path.basename(serverPath)}. Run npm run compile.`
+        `MCP server not found. Install @lineu/mcp-server globally or configure cards.mcpServerPath`
       );
     }
 
@@ -97,5 +90,54 @@ export class McpClient {
     await client.connect(transport);
     this.transport = transport;
     this.client = client;
+  }
+
+  private async resolveMcpServerPath(): Promise<string | undefined> {
+    // Priority 1: User-configured custom path
+    const config = vscode.workspace.getConfiguration("cards");
+    const customPath = config.get<string>("mcpServerPath");
+    if (customPath && existsSync(customPath)) {
+      return customPath;
+    }
+
+    // Priority 2: Bundled server in extension
+    const bundledPath = this.context.asAbsolutePath("dist/mcp-server/index.js");
+    if (existsSync(bundledPath)) {
+      return bundledPath;
+    }
+
+    // Priority 3: Global npm installation
+    try {
+      const { stdout } = await execAsync("npm root -g");
+      const globalPath = path.join(
+        stdout.trim(),
+        "@lineu/mcp-server/dist/index.js"
+      );
+      if (existsSync(globalPath)) {
+        return globalPath;
+      }
+    } catch {
+      // Ignore errors
+    }
+
+    // Priority 4: Local node_modules (development mode)
+    const localPath = path.join(
+      this.workspaceRoot,
+      "node_modules/@lineu/mcp-server/dist/index.js"
+    );
+    if (existsSync(localPath)) {
+      return localPath;
+    }
+
+    // Priority 5: Monorepo sibling package (development mode)
+    const monoRepoPath = path.join(
+      this.context.extensionPath,
+      "../mcp-server/dist/index.js"
+    );
+    if (existsSync(monoRepoPath)) {
+      return monoRepoPath;
+    }
+
+    return undefined;
   }
 }

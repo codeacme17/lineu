@@ -3,10 +3,10 @@ import * as path from "node:path";
 import { exec } from "node:child_process";
 import { promisify } from "node:util";
 
-import { McpClient } from "./mcp/client";
-import { generateCards } from "./cards/generator";
-import { CardsStore } from "./storage/cardsStore";
-import { CardsViewProvider } from "./ui/webview";
+import { generateCards } from "@lineu/lib";
+import { McpClient } from "./mcp/client.js";
+import { CardsStore } from "./storage/cardsStore.js";
+import { showCardsWebview } from "./ui/webview.js";
 
 const execAsync = promisify(exec);
 
