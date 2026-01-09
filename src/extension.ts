@@ -3,16 +3,25 @@ import * as path from "node:path";
 import { exec } from "node:child_process";
 import { promisify } from "node:util";
 
-import { McpClient } from "./mcp/client.js";
-import { generateCards } from "./cards/generator.js";
-import { CardsStore } from "./storage/cardsStore.js";
-import { showCardsWebview } from "./ui/webview.js";
+import { McpClient } from "./mcp/client";
+import { generateCards } from "./cards/generator";
+import { CardsStore } from "./storage/cardsStore";
+import { CardsViewProvider } from "./ui/webview";
 
 const execAsync = promisify(exec);
 
 let mcpClient: McpClient | null = null;
+let cardsViewProvider: CardsViewProvider | null = null;
 
 export function activate(context: vscode.ExtensionContext) {
+  cardsViewProvider = new CardsViewProvider(context.extensionUri);
+  context.subscriptions.push(
+    vscode.window.registerWebviewViewProvider(
+      "cards.sidebar",
+      cardsViewProvider
+    )
+  );
+
   const captureCommand = vscode.commands.registerCommand(
     "cards.captureContextAndGenerate",
     async () => {
@@ -38,19 +47,15 @@ export function activate(context: vscode.ExtensionContext) {
         });
 
         const store = new CardsStore(workspaceRoot);
-        showCardsWebview({
-          extensionUri: context.extensionUri,
-          cards,
-          mode: "deal",
-          onFavorite: async (card) => {
-            const result = await store.addCards([card]);
-            if (result.added.length > 0) {
-              vscode.window.showInformationMessage("Card saved.");
-            } else {
-              vscode.window.showInformationMessage("Card already saved.");
-            }
-          },
+        cardsViewProvider?.update(cards, "deal", async (card) => {
+          const result = await store.addCards([card]);
+          if (result.added.length > 0) {
+            vscode.window.showInformationMessage("Card saved.");
+          } else {
+            vscode.window.showInformationMessage("Card already saved.");
+          }
         });
+        await vscode.commands.executeCommand("workbench.view.extension.cardsView");
       } catch (error) {
         vscode.window.showErrorMessage(
           `Failed to generate cards: ${formatError(error)}`
@@ -71,11 +76,8 @@ export function activate(context: vscode.ExtensionContext) {
 
         const store = new CardsStore(workspaceRoot);
         const cards = await store.readCards();
-        showCardsWebview({
-          extensionUri: context.extensionUri,
-          cards,
-          mode: "collection",
-        });
+        cardsViewProvider?.update(cards, "collection");
+        await vscode.commands.executeCommand("workbench.view.extension.cardsView");
       } catch (error) {
         vscode.window.showErrorMessage(
           `Failed to open collection: ${formatError(error)}`

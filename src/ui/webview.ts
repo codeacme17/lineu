@@ -1,39 +1,60 @@
 import * as vscode from "vscode";
-import { Card } from "../cards/types.js";
+import { Card } from "../cards/types";
 
 type WebviewMode = "deal" | "collection";
 
-export function showCardsWebview(options: {
-  extensionUri: vscode.Uri;
-  cards: Card[];
-  mode: WebviewMode;
-  onFavorite?: (card: Card) => Promise<void>;
-}) {
-  const panel = vscode.window.createWebviewPanel(
-    "knowledgeCards",
-    options.mode === "deal" ? "Knowledge Cards" : "Knowledge Cards Collection",
-    vscode.ViewColumn.Beside,
-    {
+export class CardsViewProvider implements vscode.WebviewViewProvider {
+  private view?: vscode.WebviewView;
+  private cards: Card[] = [];
+  private mode: WebviewMode = "deal";
+  private onFavorite?: (card: Card) => Promise<void>;
+
+  constructor(private readonly extensionUri: vscode.Uri) {}
+
+  resolveWebviewView(webviewView: vscode.WebviewView): void {
+    this.view = webviewView;
+    webviewView.webview.options = {
       enableScripts: true,
-      retainContextWhenHidden: true,
-    }
-  );
+    };
 
-  panel.webview.html = buildHtml(panel.webview, options.extensionUri, options);
-
-  panel.webview.onDidReceiveMessage(async (message: { type?: string; id?: string }) => {
-    if (message?.type === "favorite" && options.onFavorite) {
-      const card = options.cards.find((item) => item.id === message.id);
-      if (card) {
-        await options.onFavorite(card);
+    webviewView.webview.onDidReceiveMessage(
+      async (message: { type?: string; id?: string }) => {
+        if (message?.type === "favorite" && this.onFavorite) {
+          const card = this.cards.find((item) => item.id === message.id);
+          if (card) {
+            await this.onFavorite(card);
+          }
+        }
       }
+    );
+
+    this.refresh();
+  }
+
+  update(cards: Card[], mode: WebviewMode, onFavorite?: (card: Card) => Promise<void>) {
+    this.cards = cards;
+    this.mode = mode;
+    this.onFavorite = onFavorite;
+    this.refresh();
+  }
+
+  reveal() {
+    this.view?.show?.(true);
+  }
+
+  private refresh() {
+    if (!this.view) {
+      return;
     }
-  });
+    this.view.webview.html = buildHtml(this.view.webview, {
+      cards: this.cards,
+      mode: this.mode,
+    });
+  }
 }
 
 function buildHtml(
   webview: vscode.Webview,
-  extensionUri: vscode.Uri,
   options: {
     cards: Card[];
     mode: WebviewMode;
@@ -71,12 +92,12 @@ function buildHtml(
         margin-bottom: 16px;
       }
       .title {
-        font-size: 20px;
+        font-size: 18px;
         font-weight: 600;
       }
       .cards {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
         gap: 12px;
       }
       .card {
@@ -87,11 +108,11 @@ function buildHtml(
       }
       .card h3 {
         margin: 0 0 8px;
-        font-size: 16px;
+        font-size: 15px;
       }
       .card p {
         margin: 0 0 10px;
-        font-size: 13px;
+        font-size: 12px;
         line-height: 1.4;
       }
       .tags {
@@ -116,6 +137,13 @@ function buildHtml(
         opacity: 0.7;
         margin-bottom: 8px;
         word-break: break-all;
+      }
+      .empty {
+        font-size: 13px;
+        opacity: 0.8;
+        padding: 12px;
+        border-radius: 10px;
+        border: 1px dashed rgba(120, 120, 120, 0.4);
       }
       .actions {
         display: flex;
@@ -213,9 +241,19 @@ function buildHtml(
         return wrapper;
       }
 
-      data.cards.forEach((card) => {
-        container.appendChild(renderCard(card));
-      });
+      if (data.cards.length === 0) {
+        const empty = document.createElement("div");
+        empty.className = "empty";
+        empty.textContent =
+          data.mode === "deal"
+            ? "No cards yet. Run the capture command to draw cards."
+            : "No saved cards yet.";
+        container.appendChild(empty);
+      } else {
+        data.cards.forEach((card) => {
+          container.appendChild(renderCard(card));
+        });
+      }
     </script>
   </body>
 </html>`;

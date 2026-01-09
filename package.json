@@ -1,9 +1,13 @@
 {
   "name": "knowledge-cards-mvp",
   "displayName": "Knowledge Cards MVP",
-  "version": "0.0.1",
+  "version": "0.0.3",
   "description": "A VS Code extension MVP for draw-style knowledge cards.",
   "publisher": "local",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/codeacme17/lineu.git"
+  },
   "main": "./build/extension.js",
   "engines": {
     "vscode": "^1.90.0"
@@ -19,7 +23,8 @@
   "activationEvents": [
     "onCommand:cards.captureContextAndGenerate",
     "onCommand:cards.openCollection",
-    "onCommand:cards.configureOpenRouterApiKey"
+    "onCommand:cards.configureOpenRouterApiKey",
+    "onView:cards.sidebar"
   ],
   "contributes": {
     "commands": [
@@ -36,6 +41,24 @@
         "title": "Cards: Configure OpenRouter API Key"
       }
     ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "cardsView",
+          "title": "Cards",
+          "icon": "resources/cards.svg"
+        }
+      ]
+    },
+    "views": {
+      "cardsView": [
+        {
+          "id": "cards.sidebar",
+          "name": "Knowledge Cards",
+          "type": "webview"
+        }
+      ]
+    },
     "configuration": {
       "title": "Cards",
       "properties": {
@@ -71,6 +94,7 @@
     "@types/node": "^24.5.2",
     "@types/uuid": "^10.0.0",
     "@types/vscode": "^1.90.0",
+    "@vscode/vsce": "^3.7.1",
     "typescript": "^5.9.2"
   }
 }

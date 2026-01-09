@@ -33,7 +33,11 @@ async function main() {
         inputSchema: InputSchema,
         outputSchema: OutputSchema,
       },
-      async (args) => {
+      async (args: {
+        seedText?: string;
+        recentInputs?: string[];
+        metadata?: Record<string, string>;
+      }) => {
         const now = new Date().toISOString();
         const conversationText = args?.seedText ?? "";
         const recentInputs = args?.recentInputs ?? [];

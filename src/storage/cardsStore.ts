@@ -1,7 +1,7 @@
 import { promises as fs } from "node:fs";
 import * as path from "node:path";
 import { createHash } from "node:crypto";
-import { Card } from "../cards/types.js";
+import { Card } from "../cards/types";
 
 export class CardsStore {
   constructor(private readonly workspaceRoot: string) {}

@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from "uuid";
-import { Card, CardSource, CodeRef } from "./types.js";
+import { Card, CardSource, CodeRef } from "./types";
 
 export type GenerateInput = {
   contextText: string;

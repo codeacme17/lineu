@@ -1,0 +1,6 @@
+services:
+  lineu:
+    image: lineu
+    build:
+      context: .
+      dockerfile: ./Dockerfile
