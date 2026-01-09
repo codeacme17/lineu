@@ -46,16 +46,29 @@ packages/
 
 ### Data Flow
 
+**Manual flow (extension-initiated):**
 1. **VSCode Extension** captures user selection + workspace context + git diff
 2. Extension invokes **@lineu/lib** `generateCards()` to create cards from diff/context
-3. Extension can also call **MCP Server** `capture_context` tool for protocol-compliant context capture
-4. Cards are stored in `.vscode/knowledge-cards.json` per workspace
+3. Cards are stored in `.vscode/knowledge-cards.json` per workspace
+
+**MCP Push flow (AI-initiated):**
+1. AI assistant (Claude Code, etc.) calls MCP `capture_context` tool with `pushToExtension: true`
+2. MCP server writes context to temp file, triggers `{editor}://lineu.vscode-knowledge-cards/capture?file=...` URI
+3. Extension's URI handler reads file, generates cards, shows webview
 
 ### Key Components
 
 - **@lineu/lib**: Core card generation - parses git diffs, extracts patterns (functions, classes, config), creates up to 7 cards with stopword filtering and SHA256 deduplication
-- **@lineu/mcp-server**: Stdio-based MCP server using `@modelcontextprotocol/sdk`, Zod validation, CLI executable `lineu-mcp-server`
-- **vscode-knowledge-cards**: Extension with 5-tier MCP server resolution (user config → bundled → global npm → local node_modules → monorepo sibling)
+- **@lineu/mcp-server**: Stdio-based MCP server using `@modelcontextprotocol/sdk`, Zod validation, supports pushing context to editors via URI handler
+- **vscode-knowledge-cards**: Extension with URI handler (`onUri` activation) for receiving MCP push, 5-tier MCP server resolution
+
+### MCP `capture_context` Tool
+
+Key parameters for AI-assisted workflow:
+- `seedText`: Conversation context or summary
+- `diff`: Git diff content (optional)
+- `pushToExtension`: Set `true` to push to editor extension
+- `editor`: Target editor - `cursor` (default), `vscode`, `vscodium`, `windsurf`
 
 ## Development Workflow
 
@@ -87,4 +100,6 @@ For local development, configure your MCP client (Cursor, Claude Desktop):
 - No test suite or linting configured
 - TypeScript strict mode enabled, target ES2022
 - VSCode extension requires VSCode 1.90.0+
-- Best use chinese
+- Extension must be installed in target editor for URI handler to work
+- Use `pnpm package` in vscode-extension to create .vsix for installation
+- Prefer Chinese for user-facing communication
