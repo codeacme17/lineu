@@ -92,22 +92,30 @@ AI: [主动调用 capture_context with type: "knowledge", seedText: "防抖函�
 
 ## AI Behavior Rules (MUST READ)
 
-**CRITICAL: After completing ANY of the following tasks, you MUST call the `capture_context` MCP tool:**
+**CRITICAL: After completing ANY task, you MUST call the `ask_to_capture` MCP tool to ask the user if they want to record the insight.**
 
-1. **After fixing a bug** → Call with `type: "bug"`, summarize the root cause and solution
-2. **After writing code that involves patterns/techniques** → Call with `type: "best_practice"`, explain the design decision
-3. **After implementing a feature using specific APIs/concepts** → Call with `type: "knowledge"`, document what the user should remember
+### Two-Step Flow:
 
-**Always use these parameters:**
-```json
-{
-  "type": "bug" | "best_practice" | "knowledge",
-  "seedText": "简洁描述关键知识点...",
-  "pushToExtension": true
-}
+1. **Step 1: Ask** → Call `ask_to_capture` with:
+   - `type`: "bug" | "best_practice" | "knowledge"
+   - `summary`: 简洁描述本次任务的关键知识点
+
+2. **Step 2: Capture** → If user responds "是/好/记录/yes", call `capture_context` with:
+   - `type`: same as above
+   - `seedText`: detailed summary
+   - `pushToExtension`: true
+
+### Example Flow:
+```
+User: "帮我实现一个防抖函数"
+AI: [完成代码编写]
+AI: [调用 ask_to_capture with type: "knowledge", summary: "防抖函数通过 setTimeout 延迟执行，每次调用时清除之前的定时器"]
+AI: 显示提示 "📝 是否记录这个💡 知识点？"
+User: "是"
+AI: [调用 capture_context with pushToExtension: true]
 ```
 
-**DO NOT skip this step.** The goal is to help users retain key learnings during vibe-coding.
+**DO NOT skip the ask_to_capture step.** The goal is to help users retain key learnings during vibe-coding.
 
 ## Development Workflow
 
