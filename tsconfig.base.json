@@ -3,17 +3,13 @@
     "target": "ES2022",
     "module": "Node16",
     "moduleResolution": "Node16",
-    "outDir": "./build",
-    "rootDir": "./src",
+    "lib": ["ES2022"],
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true
-  },
-  "include": [
-    "src/**/*"
-  ],
-  "exclude": [
-    "node_modules"
-  ]
+    "forceConsistentCasingInFileNames": true,
+    "sourceMap": true,
+    "declaration": true,
+    "declarationMap": true
+  }
 }

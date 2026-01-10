@@ -1,0 +1,32 @@
+{
+  "name": "@lineu/mcp-server",
+  "version": "0.1.0",
+  "description": "Lineu MCP Server - Model Context Protocol server for knowledge cards",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "lineu-mcp-server": "./dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "watch": "tsc -w -p tsconfig.json",
+    "clean": "rm -rf dist",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.18.2",
+    "@lineu/lib": "workspace:*",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "^24.5.2",
+    "typescript": "^5.9.2"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "license": "MIT"
+}
