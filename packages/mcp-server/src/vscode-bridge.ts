@@ -24,6 +24,7 @@ export interface VSCodeContext {
   diff?: string;
   selection?: string;
   metadata?: Record<string, unknown>;
+  type?: "bug" | "best_practice" | "knowledge";
 }
 
 /**

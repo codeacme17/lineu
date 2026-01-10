@@ -164,6 +164,7 @@ async function handleIncomingContext(
       diff?: string;
       selection?: string;
       metadata?: Record<string, unknown>;
+      type?: "bug" | "best_practice" | "knowledge";
     };
 
     // Generate cards from incoming context
@@ -171,6 +172,7 @@ async function handleIncomingContext(
       contextText: incomingContext.conversationText || "",
       diffText: incomingContext.diff || "",
       selectionText: incomingContext.selection || "",
+      type: incomingContext.type,
     });
 
     if (cards.length === 0) {

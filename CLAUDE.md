@@ -65,10 +65,49 @@ packages/
 ### MCP `capture_context` Tool
 
 Key parameters for AI-assisted workflow:
+- `type`: Card type - `bug`, `best_practice`, or `knowledge` (triggers different UI styles)
 - `seedText`: Conversation context or summary
 - `diff`: Git diff content (optional)
 - `pushToExtension`: Set `true` to push to editor extension
 - `editor`: Target editor - `cursor` (default), `vscode`, `vscodium`, `windsurf`
+
+**When to call this tool (proactive triggers):**
+- `type: "bug"` - When you help fix a bug or debug an issue, capture the root cause and solution
+- `type: "best_practice"` - **AFTER completing code changes**, if the implementation involves design patterns, architectural decisions, performance optimizations, or non-obvious techniques
+- `type: "knowledge"` - **AFTER completing a task**, if you used important concepts, APIs, or techniques that the user should remember
+
+**IMPORTANT: You should proactively call `capture_context` after completing tasks to help users retain key insights they might otherwise overlook during vibe-coding.**
+
+**Card type UI styles:**
+- `bug`: Red border and badge
+- `best_practice`: Green border and badge
+- `knowledge`: Blue border and badge
+
+**Example: When to trigger**
+```
+User: "帮我实现一个防抖函数"
+AI: [完成代码编写]
+AI: [主动调用 capture_context with type: "knowledge", seedText: "防抖函数通过 setTimeout 延迟执行，每次调用时先清除之前的定时器..."]
+```
+
+## AI Behavior Rules (MUST READ)
+
+**CRITICAL: After completing ANY of the following tasks, you MUST call the `capture_context` MCP tool:**
+
+1. **After fixing a bug** → Call with `type: "bug"`, summarize the root cause and solution
+2. **After writing code that involves patterns/techniques** → Call with `type: "best_practice"`, explain the design decision
+3. **After implementing a feature using specific APIs/concepts** → Call with `type: "knowledge"`, document what the user should remember
+
+**Always use these parameters:**
+```json
+{
+  "type": "bug" | "best_practice" | "knowledge",
+  "seedText": "简洁描述关键知识点...",
+  "pushToExtension": true
+}
+```
+
+**DO NOT skip this step.** The goal is to help users retain key learnings during vibe-coding.
 
 ## Development Workflow
 

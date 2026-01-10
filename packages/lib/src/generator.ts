@@ -1,10 +1,11 @@
 import { v4 as uuidv4 } from "uuid";
-import { Card, CardSource, CodeRef } from "./types/index.js";
+import { Card, CardSource, CardType, CodeRef } from "./types/index.js";
 
 export type GenerateInput = {
   contextText: string;
   diffText: string;
   selectionText?: string;
+  type?: CardType;
 };
 
 type FileChange = {
@@ -58,6 +59,7 @@ export function generateCards(input: GenerateInput): Card[] {
   const selectionText = input.selectionText?.trim() ?? "";
   const diffText = input.diffText ?? "";
   const contextText = input.contextText ?? "";
+  const cardType = input.type;
 
   const fileChanges = diffText.trim() ? extractFileChanges(diffText) : [];
   const diffTokens = getTopTokens(
@@ -68,8 +70,8 @@ export function generateCards(input: GenerateInput): Card[] {
   const cards: Card[] = [];
 
   if (fileChanges.length > 0) {
-    cards.push(...buildFileCards(fileChanges, diffTokens));
-    cards.push(...buildPatternCards(fileChanges, diffTokens));
+    cards.push(...buildFileCards(fileChanges, diffTokens, cardType));
+    cards.push(...buildPatternCards(fileChanges, diffTokens, cardType));
   }
 
   if (fileChanges.length > 0 && (contextText || selectionText)) {
@@ -79,6 +81,7 @@ export function generateCards(input: GenerateInput): Card[] {
         summary: buildOverviewSummary(contextText, fileChanges.length),
         tags: mergeTags(["context", "diff"], diffTokens),
         source: "both",
+        type: cardType,
       })
     );
   }
@@ -87,7 +90,8 @@ export function generateCards(input: GenerateInput): Card[] {
     const contextCards = buildContextCards(
       selectionText,
       contextText,
-      Math.max(3 - cards.length, 3)
+      Math.max(3 - cards.length, 3),
+      cardType
     );
     cards.push(...contextCards);
   }
@@ -132,7 +136,7 @@ function extractFileChanges(diffText: string): FileChange[] {
   return Array.from(changes.values());
 }
 
-function buildFileCards(fileChanges: FileChange[], tokens: string[]): Card[] {
+function buildFileCards(fileChanges: FileChange[], tokens: string[], cardType?: CardType): Card[] {
   return fileChanges.map((change) => {
     const label = change.changeType === "added"
       ? "Added"
@@ -156,11 +160,12 @@ function buildFileCards(fileChanges: FileChange[], tokens: string[]): Card[] {
           hint: `${change.changeType} file`,
         },
       ],
+      type: cardType,
     });
   });
 }
 
-function buildPatternCards(fileChanges: FileChange[], tokens: string[]): Card[] {
+function buildPatternCards(fileChanges: FileChange[], tokens: string[], cardType?: CardType): Card[] {
   const cards: Card[] = [];
   const seenKeys = new Set<string>();
 
@@ -189,6 +194,7 @@ function buildPatternCards(fileChanges: FileChange[], tokens: string[]): Card[] 
                   hint: `${kind} ${name}`,
                 },
               ],
+              type: cardType,
             })
           );
         }
@@ -212,6 +218,7 @@ function buildPatternCards(fileChanges: FileChange[], tokens: string[]): Card[] 
                     hint: `config ${configKey}`,
                   },
                 ],
+                type: cardType,
               })
             );
           }
@@ -235,6 +242,7 @@ function buildPatternCards(fileChanges: FileChange[], tokens: string[]): Card[] 
                   hint: `dependency ${dependency}`,
                 },
               ],
+              type: cardType,
             })
           );
         }
@@ -248,7 +256,8 @@ function buildPatternCards(fileChanges: FileChange[], tokens: string[]): Card[] 
 function buildContextCards(
   selectionText: string,
   contextText: string,
-  minCards: number
+  minCards: number,
+  cardType?: CardType
 ): Card[] {
   const cards: Card[] = [];
   const primary = selectionText.trim();
@@ -262,6 +271,7 @@ function buildContextCards(
         summary: "No additional context provided.",
         tags: ["context"],
         source: "context",
+        type: cardType,
       })
     );
   }
@@ -282,6 +292,7 @@ function buildContextCards(
         summary,
         tags: mergeTags(["context"], tokens),
         source: "context",
+        type: cardType,
       })
     );
   }
@@ -415,9 +426,11 @@ function createCard(params: {
   tags: string[];
   source: CardSource;
   codeRefs?: CodeRef[];
+  type?: CardType;
 }): Card {
   return {
     id: uuidv4(),
+    type: params.type,
     title: params.title,
     summary: params.summary,
     tags: params.tags.slice(0, 8),
