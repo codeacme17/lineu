@@ -65,10 +65,16 @@ packages/
 ### MCP `capture_context` Tool
 
 Key parameters for AI-assisted workflow:
+- `type`: Card type - `bug`, `best_practice`, or `knowledge` (triggers different UI styles)
 - `seedText`: Conversation context or summary
 - `diff`: Git diff content (optional)
 - `pushToExtension`: Set `true` to push to editor extension
 - `editor`: Target editor - `cursor` (default), `vscode`, `vscodium`, `windsurf`
+
+**Card type UI styles:**
+- `bug`: Red border and badge
+- `best_practice`: Green border and badge
+- `knowledge`: Blue border and badge
 
 ## Development Workflow
 
@@ -94,6 +100,60 @@ For local development, configure your MCP client (Cursor, Claude Desktop):
 
 - Cursor: `~/.cursor/mcp.json`
 - Claude Desktop: `claude_desktop_config.json`
+
+## Hooks Configuration (Auto Knowledge Capture)
+
+This project includes a hook that automatically triggers the knowledge capture UI when an AI assistant completes a task.
+
+### How It Works
+
+1. AI assistant completes a task → `stop` hook triggers
+2. Hook directly opens `cursor://lineu.vscode-knowledge-cards/capture?file=...` URI
+3. Extension shows capture dialog → user can save knowledge card
+
+**No AI involvement required** - the hook triggers the extension directly.
+
+### Project-Level Configuration (Already Included)
+
+**Cursor** (`.cursor/hooks.json`):
+```json
+{
+  "version": 1,
+  "hooks": {
+    "stop": [{ "command": "python3 ./hooks/lineu-capture.py" }]
+  }
+}
+```
+
+**Claude Code** (`.claude/settings.json`):
+```json
+{
+  "hooks": {
+    "Stop": [{ "matcher": ".*", "hooks": [{ "type": "command", "command": "python3 \"$CLAUDE_PROJECT_DIR/hooks/lineu-capture.py\"" }] }]
+  }
+}
+```
+
+### User-Level Configuration (For All Projects)
+
+**Cursor** (`~/.cursor/hooks.json`):
+```json
+{
+  "version": 1,
+  "hooks": {
+    "stop": [{ "command": "python3 /path/to/lineu/hooks/lineu-capture.py" }]
+  }
+}
+```
+
+**Claude Code** (`~/.claude/settings.json`):
+```json
+{
+  "hooks": {
+    "Stop": [{ "matcher": ".*", "hooks": [{ "type": "command", "command": "python3 /path/to/lineu/hooks/lineu-capture.py" }] }]
+  }
+}
+```
 
 ## Notes
 

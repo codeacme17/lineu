@@ -85,6 +85,36 @@ function buildHtml(
         background: rgba(120, 120, 120, 0.1);
         border: 1px solid rgba(120, 120, 120, 0.3);
       }
+      .card.type-bug {
+        border-left: 4px solid #f85149;
+      }
+      .card.type-best_practice {
+        border-left: 4px solid #3fb950;
+      }
+      .card.type-knowledge {
+        border-left: 4px solid #58a6ff;
+      }
+      .type-badge {
+        display: inline-block;
+        font-size: 10px;
+        padding: 2px 6px;
+        border-radius: 4px;
+        margin-bottom: 8px;
+        text-transform: uppercase;
+        font-weight: 600;
+      }
+      .type-badge.type-bug {
+        background: rgba(248, 81, 73, 0.2);
+        color: #f85149;
+      }
+      .type-badge.type-best_practice {
+        background: rgba(63, 185, 80, 0.2);
+        color: #3fb950;
+      }
+      .type-badge.type-knowledge {
+        background: rgba(88, 166, 255, 0.2);
+        color: #58a6ff;
+      }
       .card h3 {
         margin: 0 0 8px;
         font-size: 16px;
@@ -153,8 +183,15 @@ function buildHtml(
 
       function renderCard(card) {
         const wrapper = document.createElement("div");
-        wrapper.className = "card";
+        wrapper.className = "card" + (card.type ? " type-" + card.type : "");
         wrapper.dataset.cardId = card.id;
+
+        if (card.type) {
+          const typeBadge = document.createElement("span");
+          typeBadge.className = "type-badge type-" + card.type;
+          typeBadge.textContent = card.type.replace("_", " ");
+          wrapper.appendChild(typeBadge);
+        }
 
         const title = document.createElement("h3");
         title.textContent = card.title;
