@@ -1,6 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { registerCaptureContext, registerAskToCapture } from "./tools/index.js";
+import { registerCaptureContext } from "./tools/index.js";
 
 export async function startServer(): Promise<void> {
   try {
@@ -13,7 +13,6 @@ export async function startServer(): Promise<void> {
     });
 
     // Register all tools
-    registerAskToCapture(server);
     registerCaptureContext(server);
 
     const transport = new StdioServerTransport();

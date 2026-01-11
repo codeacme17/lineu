@@ -12,13 +12,15 @@
     "Other"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "node esbuild.js",
+    "build:production": "node esbuild.js --production",
     "watch": "tsc -w -p tsconfig.json",
     "clean": "rm -rf dist",
-    "vscode:prepublish": "pnpm run build",
+    "vscode:prepublish": "pnpm run build:production",
     "package": "vsce package --no-dependencies"
   },
   "activationEvents": [
+    "onStartupFinished",
     "onCommand:cards.captureContextAndGenerate",
     "onCommand:cards.openCollection",
     "onCommand:cards.configureOpenRouterApiKey",
@@ -78,6 +80,7 @@
     "@types/node": "^24.5.2",
     "@types/vscode": "^1.90.0",
     "@vscode/vsce": "^3.7.1",
+    "esbuild": "^0.27.2",
     "typescript": "^5.9.2"
   },
   "license": "MIT"

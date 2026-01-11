@@ -80,6 +80,67 @@ packages/
 └── vscode-extension/ # VSCode extension for card generation
 ```
 
+## MCP Integration
+
+Lineu works with AI coding assistants through MCP (Model Context Protocol). After completing tasks, the AI will ask if you want to capture the knowledge.
+
+### Setup for Different Platforms
+
+#### Cursor
+
+1. Add MCP server to `~/.cursor/mcp.json`:
+```json
+{
+  "mcpServers": {
+    "lineu": {
+      "command": "node",
+      "args": ["/path/to/lineu/packages/mcp-server/dist/index.js"]
+    }
+  }
+}
+```
+
+2. The `.cursorrules` file in this repo tells Cursor AI to call `ask_to_capture` after tasks.
+
+#### Claude Code (VSCode Extension)
+
+1. Add MCP server to `~/Library/Application Support/Code/User/mcp.json` (macOS):
+```json
+{
+  "servers": {
+    "lineu": {
+      "command": "node",
+      "args": ["/path/to/lineu/packages/mcp-server/dist/index.js"]
+    }
+  }
+}
+```
+
+2. The `CLAUDE.md` file in this repo guides Claude Code to call `ask_to_capture` after tasks.
+
+#### VSCode Extension Installation
+
+```bash
+cd packages/vscode-extension
+pnpm package
+code --install-extension vscode-knowledge-cards-0.1.0.vsix
+```
+
+### How It Works
+
+1. AI completes a task (writes code, fixes bug, explains concept)
+2. AI calls `ask_to_capture` → Shows: "📝 是否记录这个💡 知识点？"
+3. You reply "是" or "记录"
+4. AI calls `capture_context` → Card appears in VSCode extension
+
+### Card Types
+
+| Type | When to Use | UI Style |
+|------|-------------|----------|
+| `bug` | Bug fixes, error debugging | 🔴 Red |
+| `best_practice` | Design patterns, architecture decisions | 🟢 Green |
+| `knowledge` | Concepts, API usage, techniques | 🔵 Blue |
+
 ## Development
 
 See [CLAUDE.md](./CLAUDE.md) for detailed development documentation, including per-package commands, MCP server configuration, and architecture details.
