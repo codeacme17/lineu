@@ -4,6 +4,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import { exec } from "node:child_process";
 import { promisify } from "node:util";
+import { readFile, unlink } from "node:fs/promises";
 
 import { generateCards, Card } from "@lineu/lib";
 import { CardsStore } from "./storage/cardsStore.js";
@@ -11,30 +12,128 @@ import { CardsViewProvider } from "./ui/webview.js";
 
 const execAsync = promisify(exec);
 
-// 共享上下文文件路径 - 与 MCP Server 保持一致
-const CONTEXT_DIR = path.join(os.homedir(), ".lineu");
-const CONTEXT_FILE = path.join(CONTEXT_DIR, "pending-contexts.json");
-
-// 与 MCP Server 的 CapturedContext 类型保持一致
-type CapturedContext = {
-  id: string;
-  conversationText: string;
-  recentInputs: string[];
-  metadata: Record<string, unknown>;
-  timestamp: string;
-  processed: boolean;
-};
-
-let cardsViewProvider: CardsViewProvider | null = null;
-let contextWatcher: fs.FSWatcher | null = null;
+let mcpClient: McpClient | null = null;
+let extensionContext: vscode.ExtensionContext | null = null;
 
 export function activate(context: vscode.ExtensionContext) {
-  console.log("🎴 Knowledge Cards extension activated!");
+  extensionContext = context;
+
+  // Register URI handler for MCP server to push context
+  const uriHandler = vscode.window.registerUriHandler({
+    handleUri(uri: vscode.Uri) {
+      if (uri.path === "/capture") {
+        const params = new URLSearchParams(uri.query);
+        const filePath = params.get("file");
+        if (filePath) {
+          handleIncomingContext(context, filePath);
+        }
+      }
+    },
+  });
+
+  const captureCommand = vscode.commands.registerCommand(
+    "cards.captureContextAndGenerate",
+    async () => {
+      try {
+        const workspaceRoot = getWorkspaceRoot();
+        if (!workspaceRoot) {
+          vscode.window.showErrorMessage("Open a workspace to capture cards.");
+          return;
+        }
+
+        const selectionText = getSelectionText();
+        const contextText = await getContextText(
+          context,
+          workspaceRoot,
+          selectionText
+        );
+        const diffText = await getGitDiff(workspaceRoot);
+
+        const cards = generateCards({
+          contextText,
+          diffText,
+          selectionText,
+        });
+
+        const store = new CardsStore(workspaceRoot);
+        showCardsWebview({
+          extensionUri: context.extensionUri,
+          cards,
+          mode: "deal",
+          onFavorite: async (card) => {
+            const result = await store.addCards([card]);
+            if (result.added.length > 0) {
+              vscode.window.showInformationMessage("Card saved.");
+            } else {
+              vscode.window.showInformationMessage("Card already saved.");
+            }
+          },
+        });
+      } catch (error) {
+        vscode.window.showErrorMessage(
+          `Failed to generate cards: ${formatError(error)}`
+        );
+      }
+    }
+  );
+
+  const openCollection = vscode.commands.registerCommand(
+    "cards.openCollection",
+    async () => {
+      try {
+        const workspaceRoot = getWorkspaceRoot();
+        if (!workspaceRoot) {
+          vscode.window.showErrorMessage("Open a workspace to view cards.");
+          return;
+        }
+
+        const store = new CardsStore(workspaceRoot);
+        const cards = await store.readCards();
+        showCardsWebview({
+          extensionUri: context.extensionUri,
+          cards,
+          mode: "collection",
+        });
+      } catch (error) {
+        vscode.window.showErrorMessage(
+          `Failed to open collection: ${formatError(error)}`
+        );
+      }
+    }
+  );
+
+  const configureOpenRouter = vscode.commands.registerCommand(
+    "cards.configureOpenRouterApiKey",
+    async () => {
+      try {
+        const apiKey = await vscode.window.showInputBox({
+          prompt: "Enter your OpenRouter API key.",
+          password: true,
+          ignoreFocusOut: true,
+          placeHolder: "sk-or-...",
+        });
+
+        if (!apiKey) {
+          return;
+        }
+
+        await context.secrets.store("cards.openRouterApiKey", apiKey.trim());
+        vscode.window.showInformationMessage("OpenRouter API key saved.");
+      } catch (error) {
+        vscode.window.showErrorMessage(
+          `Failed to store OpenRouter API key: ${formatError(error)}`
+        );
+      }
+    }
+  );
 
   // 注册侧边栏视图
   cardsViewProvider = new CardsViewProvider(context.extensionUri);
   context.subscriptions.push(
-    vscode.window.registerWebviewViewProvider("cards.sidebar", cardsViewProvider)
+    uriHandler,
+    captureCommand,
+    openCollection,
+    configureOpenRouter
   );
 
   // 启动文件监听
@@ -112,61 +211,75 @@ function startContextWatcher(context: vscode.ExtensionContext): void {
   }
 }
 
-async function processPendingContexts(): Promise<void> {
-  if (!fs.existsSync(CONTEXT_FILE)) return;
-
+/**
+ * Handle incoming context from MCP server via URI handler.
+ * The MCP server writes context to a temp file and triggers this URI.
+ */
+async function handleIncomingContext(
+  context: vscode.ExtensionContext,
+  filePath: string
+): Promise<void> {
   try {
-    const contexts: CapturedContext[] = JSON.parse(fs.readFileSync(CONTEXT_FILE, "utf8"));
-    const pending = contexts.filter((c) => !c.processed);
-    if (pending.length === 0) return;
-
     const workspaceRoot = getWorkspaceRoot();
-    if (!workspaceRoot) return;
-
-    const diffText = await getGitDiff(workspaceRoot);
-    const allCards: Card[] = [];
-
-    for (const ctx of pending) {
-      const contextText = [ctx.conversationText, ...(ctx.recentInputs || [])]
-        .filter(Boolean)
-        .join("\n\n");
-
-      allCards.push(...generateCards({ contextText, diffText, selectionText: undefined }));
-      ctx.processed = true;
+    if (!workspaceRoot) {
+      vscode.window.showErrorMessage("Open a workspace to receive cards.");
+      return;
     }
 
-    fs.writeFileSync(CONTEXT_FILE, JSON.stringify(contexts, null, 2), "utf8");
+    // Read context from temp file
+    const content = await readFile(filePath, "utf-8");
+    const incomingContext = JSON.parse(content) as {
+      conversationText?: string;
+      diff?: string;
+      selection?: string;
+      metadata?: Record<string, unknown>;
+      type?: "bug" | "best_practice" | "knowledge";
+    };
 
-    if (allCards.length > 0) {
-      await showCards(allCards, workspaceRoot);
-      vscode.window.showInformationMessage(
-        `Generated ${allCards.length} card(s) from ${pending.length} AI conversation(s).`
-      );
+    // Generate cards from incoming context
+    const cards = generateCards({
+      contextText: incomingContext.conversationText || "",
+      diffText: incomingContext.diff || "",
+      selectionText: incomingContext.selection || "",
+      type: incomingContext.type,
+    });
+
+    if (cards.length === 0) {
+      vscode.window.showInformationMessage("No cards generated from context.");
+      return;
+    }
+
+    // Show cards in webview
+    const store = new CardsStore(workspaceRoot);
+    showCardsWebview({
+      extensionUri: context.extensionUri,
+      cards,
+      mode: "deal",
+      onFavorite: async (card) => {
+        const result = await store.addCards([card]);
+        if (result.added.length > 0) {
+          vscode.window.showInformationMessage("Card saved.");
+        } else {
+          vscode.window.showInformationMessage("Card already saved.");
+        }
+      },
+    });
+
+    vscode.window.showInformationMessage(
+      `Received ${cards.length} card(s) from vibe-coding session.`
+    );
+
+    // Cleanup temp file
+    try {
+      await unlink(filePath);
+    } catch {
+      // Ignore cleanup errors
     }
   } catch (error) {
-    console.error("Failed to process pending contexts:", error);
-  }
-}
-
-// ============ 工具函数 ============
-
-async function showCards(cards: Card[], workspaceRoot: string) {
-  const store = new CardsStore(workspaceRoot);
-  cardsViewProvider?.update(cards, "deal", async (card) => {
-    const result = await store.addCards([card]);
-    vscode.window.showInformationMessage(
-      result.added.length > 0 ? "Card saved." : "Card already saved."
+    vscode.window.showErrorMessage(
+      `Failed to process incoming context: ${formatError(error)}`
     );
-  });
-  await vscode.commands.executeCommand("workbench.view.extension.cardsView");
-}
-
-function requireWorkspace(): string | undefined {
-  const root = getWorkspaceRoot();
-  if (!root) {
-    vscode.window.showErrorMessage("Open a workspace first.");
   }
-  return root;
 }
 
 function getWorkspaceRoot(): string | undefined {

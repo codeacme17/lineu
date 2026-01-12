@@ -2,6 +2,51 @@
 
 A VSCode extension for generating draw-style knowledge cards from context and git diff.
 
+## Features
+
+- **Manual Capture**: Generate cards from selected text and git diff
+- **MCP Push**: Receive context from AI assistants (Claude Code, etc.) via MCP server
+
+## MCP Integration (AI-Assisted Workflow)
+
+The extension can receive context pushed from AI coding assistants through the MCP server. When you're vibe-coding with Claude Code or similar tools, the AI can automatically send learning moments to the extension.
+
+### How It Works
+
+1. Configure `@lineu/mcp-server` in your AI assistant
+2. During conversation, the AI calls `capture_context` with `pushToExtension: true`
+3. The extension receives the context and generates Lineu Cards
+4. You review and save the cards you want to keep
+
+### MCP Tool Usage
+
+```json
+{
+  "seedText": "Discussion about React state management patterns...",
+  "diff": "git diff output (optional)",
+  "selection": "selected code (optional)",
+  "pushToExtension": true,
+  "editor": "cursor"
+}
+```
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `seedText` | string | Conversation context or summary |
+| `diff` | string | Git diff content (optional) |
+| `selection` | string | Code selection (optional) |
+| `pushToExtension` | boolean | Set `true` to push to extension |
+| `editor` | string | Target editor: `cursor` (default), `vscode`, `vscodium`, `windsurf` |
+
+### Supported Editors
+
+The MCP server supports multiple editors via URI schemes:
+
+- **Cursor** (`cursor://`) - default
+- **VS Code** (`vscode://`)
+- **VSCodium** (`vscodium://`)
+- **Windsurf** (`windsurf://`)
+
 ## Development
 
 ```bash
@@ -53,9 +98,37 @@ vsce publish
 
 ## MCP Server
 
-The extension requires `@lineu/mcp-server`. It will look for the server in:
+The extension works with `@lineu/mcp-server`. It will look for the server in:
 
 1. User-configured `cards.mcpServerPath`
 2. Bundled server in extension
 3. Global npm: `npm install -g @lineu/mcp-server`
 4. Local node_modules
+
+### Configure MCP Server for AI Assistants
+
+**Claude Code / Cursor** (`~/.cursor/mcp.json`):
+```json
+{
+  "mcpServers": {
+    "lineu": {
+      "command": "node",
+      "args": ["/path/to/lineu/packages/mcp-server/dist/index.js"]
+    }
+  }
+}
+```
+
+**Claude Desktop** (`claude_desktop_config.json`):
+```json
+{
+  "mcpServers": {
+    "lineu": {
+      "command": "node",
+      "args": ["/path/to/lineu/packages/mcp-server/dist/index.js"]
+    }
+  }
+}
+```
+
+Once configured, the AI assistant can use the `capture_context` tool to push learning moments to your editor.

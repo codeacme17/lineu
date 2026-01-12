@@ -3,3 +3,7 @@ dist/
 build/
 temp/
 *.vsix
+
+
+.claude
+.cursor
