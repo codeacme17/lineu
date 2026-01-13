@@ -1,8 +1,8 @@
 {
-  "name": "vscode-knowledge-cards",
-  "displayName": "Knowledge Cards",
+  "name": "lineu",
+  "displayName": "Lineu",
   "version": "0.1.0",
-  "description": "Generate knowledge cards from AI conversations via MCP",
+  "description": "Capture and organize Lineu insights from AI conversations via MCP",
   "publisher": "lineu",
   "main": "./dist/extension.js",
   "engines": {
@@ -14,7 +14,7 @@
   "scripts": {
     "build": "node esbuild.js",
     "build:production": "node esbuild.js --production",
-    "watch": "tsc -w -p tsconfig.json",
+    "watch": "node esbuild.js --watch",
     "clean": "rm -rf dist",
     "vscode:prepublish": "pnpm run build:production",
     "package": "vsce package --no-dependencies"
@@ -26,6 +26,10 @@
     "onCommand:cards.configureOpenRouterApiKey",
     "onCommand:cards.copyMcpServerPath",
     "onCommand:cards.copyMcpConfig",
+    "onCommand:cards.createMcpConfig",
+    "onCommand:cards.copyHooksConfig",
+    "onCommand:cards.createHooksConfig",
+    "onCommand:cards.showOnboarding",
     "onUri"
   ],
   "contributes": {
@@ -33,7 +37,7 @@
       "activitybar": [
         {
           "id": "cardsView",
-          "title": "Knowledge Cards",
+          "title": "Lineu",
           "icon": "resources/cards.svg"
         }
       ]
@@ -42,7 +46,7 @@
       "cardsView": [
         {
           "id": "cards.sidebar",
-          "name": "Cards",
+          "name": "Lineu",
           "type": "webview"
         }
       ]
@@ -50,27 +54,39 @@
     "commands": [
       {
         "command": "cards.captureContextAndGenerate",
-        "title": "Cards: Capture Context and Generate"
+        "title": "Lineu: Capture Context and Generate"
       },
       {
         "command": "cards.openCollection",
-        "title": "Cards: Open Collection"
-      },
-      {
-        "command": "cards.processPendingContexts",
-        "title": "Cards: Process Pending AI Contexts"
+        "title": "Lineu: Open Collection"
       },
       {
         "command": "cards.copyMcpServerPath",
-        "title": "Cards: Copy MCP Server Path"
+        "title": "Lineu: Copy MCP Server Path"
       },
       {
         "command": "cards.copyMcpConfig",
-        "title": "Cards: Copy MCP Config Snippet"
+        "title": "Lineu: Copy MCP Config Snippet"
+      },
+      {
+        "command": "cards.createMcpConfig",
+        "title": "Lineu: Create MCP Config File"
+      },
+      {
+        "command": "cards.copyHooksConfig",
+        "title": "Lineu: Copy Hooks Config"
+      },
+      {
+        "command": "cards.createHooksConfig",
+        "title": "Lineu: Create Hooks Config File"
+      },
+      {
+        "command": "cards.showOnboarding",
+        "title": "Lineu: Show Onboarding"
       }
     ],
     "configuration": {
-      "title": "Knowledge Cards",
+      "title": "Lineu",
       "properties": {
         "cards.diffMode": {
           "type": "string",
@@ -101,6 +117,7 @@
     "dist",
     "resources",
     "mcp-server/dist",
+    "hooks",
     "README.md"
   ]
 }

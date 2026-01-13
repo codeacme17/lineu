@@ -1,6 +1,6 @@
-# Knowledge Cards - VSCode Extension
+# Lineu - VSCode Extension
 
-A VSCode extension for generating draw-style knowledge cards from context and git diff.
+A VSCode extension for capturing Lineu insights from context and git diff.
 
 ## Features
 
@@ -9,14 +9,14 @@ A VSCode extension for generating draw-style knowledge cards from context and gi
 
 ## MCP Integration (AI-Assisted Workflow)
 
-The extension can receive context pushed from AI coding assistants through the MCP server. When you're vibe-coding with Claude Code or similar tools, the AI can automatically send learning moments to the extension.
+The extension can receive context pushed from AI coding assistants through the MCP server. When you're vibe-coding with Claude Code or similar tools, the AI can automatically send learning moments to Lineu.
 
 ### How It Works
 
 1. Configure `@lineu/mcp-server` in your AI assistant
 2. During conversation, the AI calls `capture_context` with `pushToExtension: true`
 3. The extension receives the context and generates Lineu Cards
-4. You review and save the cards you want to keep
+4. You review and save the Lineu cards you want to keep
 
 ### Built-in MCP Server (recommended)
 
@@ -25,7 +25,32 @@ This extension ships with an embedded MCP server so users do not need to install
 Steps:
 
 1. Run `Cards: Copy MCP Server Path` to copy the embedded server path.
-2. Run `Cards: Copy MCP Config Snippet` and paste it into your AI tool's MCP config file.
+2. Run `Cards: Create MCP Config File` (recommended) or `Cards: Copy MCP Config Snippet`.
+3. Restart your AI tool after updating the config.
+
+### Hooks (optional)
+
+Enable hooks to auto-capture context after each task.
+
+1. Run `Cards: Create Hooks Config File` (recommended) or `Cards: Copy Hooks Config`.
+2. Paste into your tool config (if you used copy):
+   - Cursor: `~/.cursor/hooks.json` or `.cursor/hooks.json`
+   - Claude Code: `~/.claude/settings.json` or `.claude/settings.json`
+3. Restart your AI tool after updating the config.
+
+Example (Cursor / Claude Code):
+
+```json
+{
+  "hooks": {
+    "stop": [
+      {
+        "command": "/path/to/extension/hooks/lineu-capture.py"
+      }
+    ]
+  }
+}
+```
 
 ### MCP Tool Usage
 
@@ -79,11 +104,15 @@ pnpm watch
 
 | Command                               | Description                         |
 | ------------------------------------- | ----------------------------------- |
-| `Cards: Capture Context and Generate` | Generate cards from current context |
-| `Cards: Open Collection`              | View saved cards                    |
-| `Cards: Configure OpenRouter API Key` | Set API key                         |
-| `Cards: Copy MCP Server Path`         | Copy embedded MCP server path       |
-| `Cards: Copy MCP Config Snippet`      | Copy MCP config JSON                |
+| `Lineu: Capture Context and Generate` | Generate cards from current context |
+| `Lineu: Open Collection`              | View saved cards                    |
+| `Lineu: Configure OpenRouter API Key` | Set API key                         |
+| `Lineu: Copy MCP Server Path`         | Copy embedded MCP server path       |
+| `Lineu: Copy MCP Config Snippet`      | Copy MCP config JSON                |
+| `Lineu: Create MCP Config File`       | Create MCP config JSON              |
+| `Lineu: Copy Hooks Config`            | Copy hooks config JSON              |
+| `Lineu: Create Hooks Config File`     | Create hooks config JSON            |
+| `Lineu: Show Onboarding`              | Open the onboarding guide           |
 
 ## Configuration
 

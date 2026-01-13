@@ -19,7 +19,7 @@ MCP (Model Context Protocol) server for capturing AI conversation contexts and g
 ┌─────────────────────────────────────────────────────────────────┐
 │  MCP Server (this package)                                       │
 │                                                                  │
-│  Writes context to ~/.lineu/pending-contexts.json                │
+│  Writes context to temp file and opens editor URI                │
 │                                                                  │
 └─────────────────────┬───────────────────────────────────────────┘
                       │
@@ -111,4 +111,4 @@ Capture the current AI conversation context for generating knowledge cards.
 
 ## Data Storage
 
-Contexts are stored in `~/.lineu/pending-contexts.json`. The VS Code extension monitors this file and processes new contexts automatically.
+Contexts are written to a temp file and sent to the editor via URI.
