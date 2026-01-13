@@ -24,6 +24,8 @@
     "onCommand:cards.captureContextAndGenerate",
     "onCommand:cards.openCollection",
     "onCommand:cards.configureOpenRouterApiKey",
+    "onCommand:cards.copyMcpServerPath",
+    "onCommand:cards.copyMcpConfig",
     "onUri"
   ],
   "contributes": {
@@ -57,6 +59,14 @@
       {
         "command": "cards.processPendingContexts",
         "title": "Cards: Process Pending AI Contexts"
+      },
+      {
+        "command": "cards.copyMcpServerPath",
+        "title": "Cards: Copy MCP Server Path"
+      },
+      {
+        "command": "cards.copyMcpConfig",
+        "title": "Cards: Copy MCP Config Snippet"
       }
     ],
     "configuration": {
@@ -86,5 +96,11 @@
     "esbuild": "^0.27.2",
     "typescript": "^5.9.2"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "files": [
+    "dist",
+    "resources",
+    "mcp-server/dist",
+    "README.md"
+  ]
 }

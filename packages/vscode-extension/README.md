@@ -18,6 +18,15 @@ The extension can receive context pushed from AI coding assistants through the M
 3. The extension receives the context and generates Lineu Cards
 4. You review and save the cards you want to keep
 
+### Built-in MCP Server (recommended)
+
+This extension ships with an embedded MCP server so users do not need to install `@lineu/mcp-server` manually.
+
+Steps:
+
+1. Run `Cards: Copy MCP Server Path` to copy the embedded server path.
+2. Run `Cards: Copy MCP Config Snippet` and paste it into your AI tool's MCP config file.
+
 ### MCP Tool Usage
 
 ```json
@@ -73,6 +82,8 @@ pnpm watch
 | `Cards: Capture Context and Generate` | Generate cards from current context |
 | `Cards: Open Collection`              | View saved cards                    |
 | `Cards: Configure OpenRouter API Key` | Set API key                         |
+| `Cards: Copy MCP Server Path`         | Copy embedded MCP server path       |
+| `Cards: Copy MCP Config Snippet`      | Copy MCP config JSON                |
 
 ## Configuration
 
