@@ -1,0 +1,1369 @@
+/* 线稿风格 - Sketch Style */
+@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@400;500;600;700&family=Patrick+Hand&display=swap');
+
+:root {
+  color-scheme: light dark;
+  
+  /* 黑白灰调色板 */
+  --bg: #161616;
+  --bg-paper: #1c1c1c;
+  --panel: rgba(35, 35, 35, 0.8);
+  --panel-soft: rgba(45, 45, 45, 0.5);
+  --border: rgba(255, 255, 255, 0.12);
+  --border-sketch: rgba(255, 255, 255, 0.25);
+  --text: #e5e5e5;
+  --text-warm: #d0d0d0;
+  --muted: rgba(255, 255, 255, 0.45);
+  --accent: #ffffff;
+  --accent-light: rgba(255, 255, 255, 0.6);
+  --danger: #999999;
+  --star: #cccccc;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Patrick Hand", "Caveat", cursive, system-ui;
+  background: 
+    /* 细微网格纹理 */
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(255, 255, 255, 0.01) 2px,
+      rgba(255, 255, 255, 0.01) 4px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 2px,
+      rgba(255, 255, 255, 0.01) 2px,
+      rgba(255, 255, 255, 0.01) 4px
+    ),
+    var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  letter-spacing: 0.02em;
+}
+
+.frame {
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  height: 100vh;
+}
+
+/* Panel 线稿风格 */
+.panel {
+  background: var(--panel);
+  border: 1.5px solid var(--border-sketch);
+  border-radius: 10px;
+  padding: 10px 12px;
+  flex: 1 1 auto;
+  min-height: 120px;
+  position: relative;
+  overflow: hidden;
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px dashed var(--border);
+}
+
+.panel-title {
+  font-family: "Caveat", cursive;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-warm);
+}
+
+.panel-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* 按钮线稿风格 */
+.btn {
+  border: none;
+  padding: 4px 10px;
+  border-radius: 14px;
+  cursor: pointer;
+  font-family: "Patrick Hand", cursive;
+  font-size: 12px;
+  transition: all 0.2s ease;
+  position: relative;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-primary {
+  background: var(--text);
+  color: var(--bg);
+  border: 1.5px solid var(--text);
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--text-warm);
+  border: 1.5px dashed var(--border-sketch);
+}
+
+.btn-secondary:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  border-style: solid;
+}
+
+.btn-secondary.active {
+  color: var(--bg);
+  background: var(--text);
+  border-color: var(--text);
+  border-style: solid;
+}
+
+.btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Custom Dropdown */
+.dropdown {
+  position: relative;
+}
+
+.dropdown-trigger {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border: 1.5px dashed var(--border-sketch);
+  background: transparent;
+  color: var(--text-warm);
+  border-radius: 14px;
+  padding: 4px 10px;
+  font-family: "Patrick Hand", cursive;
+  font-size: 12px;
+  cursor: pointer;
+  height: 26px;
+  min-width: 60px;
+}
+
+.dropdown-trigger:hover {
+  border-color: var(--accent);
+}
+
+.dropdown-arrow {
+  width: 12px;
+  height: 12px;
+  stroke: currentColor;
+  stroke-width: 2;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.6;
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  min-width: 100%;
+  background: var(--bg-paper);
+  border: 1.5px solid var(--border-sketch);
+  border-radius: 8px;
+  padding: 4px;
+  z-index: 50;
+  max-height: 150px;
+  overflow-y: auto;
+  animation: dropdownFade 0.15s ease;
+}
+
+@keyframes dropdownFade {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.dropdown-item {
+  display: block;
+  width: 100%;
+  padding: 4px 8px;
+  border: none;
+  background: transparent;
+  color: var(--text-warm);
+  font-family: "Patrick Hand", cursive;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.dropdown-item:hover {
+  background: var(--panel-soft);
+}
+
+.dropdown-item.active {
+  color: var(--accent);
+}
+
+/* Icon */
+.icon {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Empty state */
+.empty {
+  font-family: "Caveat", cursive;
+  font-size: 16px;
+  color: var(--muted);
+  text-align: center;
+  padding: 24px;
+  font-style: italic;
+}
+
+/* Saved Cards List */
+.saved-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow-y: auto;
+  max-height: calc(100% - 40px);
+}
+
+/* 卡片线稿风格 - 紧凑版 */
+.saved-card {
+  width: calc(100% - 4px);
+  margin-left: 2px;
+  border-radius: 8px;
+  padding: 6px 10px;
+  border: 1.5px solid var(--border-sketch);
+  background: var(--bg-paper);
+  font-size: 13px;
+  color: var(--text);
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.saved-card:hover {
+  border-color: var(--accent);
+  transform: translateX(2px);
+  background: var(--panel-soft);
+}
+
+.saved-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.saved-card-title {
+  font-family: "Caveat", cursive;
+  font-weight: 600;
+  font-size: 15px;
+  letter-spacing: 0.01em;
+  color: var(--text-warm);
+}
+
+.saved-summary {
+  font-family: "Patrick Hand", cursive;
+  font-size: 11px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 2px;
+  max-height: 0;
+  opacity: 0;
+  transition: all 0.2s ease;
+}
+
+.saved-card:hover .saved-summary {
+  max-height: 20px;
+  opacity: 1;
+}
+
+.saved-tags {
+  align-items: center;
+  margin-top: 4px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+/* Tag 手绘风格 */
+.saved-tag {
+  font-family: "Patrick Hand", cursive;
+  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: 8px;
+  border: 1px dashed var(--border-sketch);
+  color: var(--muted);
+}
+
+/* 删除按钮 - 只在编辑态显示 */
+.saved-delete {
+  display: none;
+  border: 2px dashed var(--danger);
+  background: transparent;
+  color: var(--danger);
+  font-family: "Patrick Hand", cursive;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 4px 10px;
+  border-radius: 12px;
+  transition: all 0.2s ease;
+}
+
+.editing .saved-delete {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.saved-delete:hover {
+  background: var(--danger);
+  color: var(--bg);
+  border-style: solid;
+}
+
+/* Tag Input - 只在编辑态显示，不需要加号按钮 */
+.tag-add {
+  display: none !important;
+}
+
+.tag-input {
+  border: 2px dashed var(--border-sketch);
+  border-radius: 12px;
+  padding: 3px 10px;
+  font-family: "Patrick Hand", cursive;
+  font-size: 13px;
+  color: var(--text);
+  background: transparent;
+  outline: none;
+  width: 80px;
+  display: none;
+}
+
+.editing .tag-input {
+  display: inline-flex;
+}
+
+.tag-input::placeholder {
+  color: var(--muted);
+  font-style: italic;
+}
+
+.tag-input:focus {
+  border-color: var(--accent);
+  border-style: solid;
+}
+
+/* Deck (Incoming cards) 线稿风格 */
+.deck {
+  background: var(--panel);
+  border: 1.5px solid var(--border-sketch);
+  border-radius: 10px;
+  padding: 10px 12px;
+  flex: 0 0 auto;
+  min-height: 100px;
+  display: flex;
+  flex-direction: column;
+}
+
+.deck-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+  padding-bottom: 4px;
+  border-bottom: 1px dashed var(--border);
+}
+
+.deck-title {
+  font-family: "Caveat", cursive;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-warm);
+  display: flex;
+  align-items: center;
+}
+
+.deck-hint {
+  font-family: "Patrick Hand", cursive;
+  font-size: 11px;
+  color: var(--accent);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.deck-hint.visible {
+  opacity: 1;
+}
+
+.deck-hand {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow-y: auto;
+  flex: 1 1 auto;
+}
+
+/* Deck Card 线稿风格 - 紧凑版 */
+.deck-card {
+  width: calc(100% - 6px);
+  margin-left: 2px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1.5px solid var(--border-sketch);
+  background: var(--bg-paper);
+  position: relative;
+  transition: all 0.2s ease;
+  cursor: grab;
+}
+
+.deck-card:hover {
+  border-color: var(--accent);
+  transform: translateX(3px);
+  background: var(--panel-soft);
+}
+
+.deck-card .title {
+  font-family: "Caveat", cursive;
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text-warm);
+}
+
+.deck-card .summary {
+  font-family: "Patrick Hand", cursive;
+  font-size: 11px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 2px;
+  max-height: 0;
+  opacity: 0;
+  transition: all 0.2s ease;
+}
+
+.deck-card:hover .summary {
+  max-height: 20px;
+  opacity: 1;
+}
+
+/* Drop zone 手绘风格 */
+.drop-ready::after {
+  content: "✧ Drop to save ✧";
+  position: absolute;
+  inset: 12px;
+  border: 2px dashed var(--accent);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: "Caveat", cursive;
+  font-size: 18px;
+  color: var(--accent);
+  background: rgba(26, 25, 22, 0.85);
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* Dragging states */
+.dragging {
+  opacity: 0.5;
+}
+
+/* 滚动条手绘风格 */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-sketch);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent);
+}
+
+/* Settings Button */
+.settings-btn {
+  background: transparent;
+  border: 1.5px dashed var(--border-sketch);
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--muted);
+  transition: all 0.2s ease;
+}
+
+.settings-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* Settings Modal */
+.settings-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  animation: fadeIn 0.15s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.settings-modal {
+  background: var(--bg-paper);
+  border: 1.5px solid var(--border-sketch);
+  border-radius: 12px;
+  padding: 16px;
+  min-width: 200px;
+  max-width: 280px;
+  animation: slideUp 0.2s ease;
+}
+
+@keyframes slideUp {
+  from { 
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to { 
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.settings-title {
+  font-family: "Caveat", cursive;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-warm);
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px dashed var(--border);
+}
+
+.settings-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.settings-item:hover {
+  color: var(--accent);
+}
+
+.settings-item-label {
+  font-family: "Patrick Hand", cursive;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Toggle Switch */
+.toggle {
+  width: 36px;
+  height: 20px;
+  background: var(--border-sketch);
+  border-radius: 10px;
+  position: relative;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.toggle.active {
+  background: var(--accent);
+}
+
+.toggle::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  background: var(--text);
+  border-radius: 50%;
+  transition: transform 0.2s ease;
+}
+
+.toggle.active::after {
+  transform: translateX(16px);
+}
+
+/* Light Mode Variables */
+.light-mode {
+  --bg: #f5f5f5;
+  --bg-paper: #fafafa;
+  --panel: rgba(240, 240, 240, 0.9);
+  --panel-soft: rgba(235, 235, 235, 0.6);
+  --border: rgba(0, 0, 0, 0.1);
+  --border-sketch: rgba(0, 0, 0, 0.2);
+  --text: #1a1a1a;
+  --text-warm: #333333;
+  --muted: rgba(0, 0, 0, 0.45);
+  --accent: #000000;
+  --accent-light: rgba(0, 0, 0, 0.5);
+  --danger: #666666;
+  --star: #444444;
+}
+
+/* Onboarding View */
+.onboarding {
+  padding: 8px;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+.onboarding-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px dashed var(--border);
+}
+
+.back-btn {
+  background: transparent;
+  border: 1.5px dashed var(--border-sketch);
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--muted);
+  transition: all 0.2s ease;
+}
+
+.back-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.onboarding-title {
+  font-family: "Caveat", cursive;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-warm);
+  margin: 0;
+  letter-spacing: 0.05em;
+}
+
+.onboarding-steps {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.step {
+  background: var(--bg-paper);
+  border: 1.5px solid var(--border-sketch);
+  border-radius: 10px;
+  padding: 12px;
+}
+
+.step-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.step h2 {
+  font-family: "Caveat", cursive;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-warm);
+  margin: 0;
+}
+
+.step p {
+  font-family: "Patrick Hand", cursive;
+  font-size: 12px;
+  color: var(--muted);
+  margin: 0 0 6px;
+  line-height: 1.4;
+}
+
+.step-hint {
+  font-size: 11px !important;
+}
+
+.step-hint code {
+  font-family: monospace;
+  font-size: 10px;
+  color: var(--text);
+  background: rgba(210, 180, 140, 0.1);
+  padding: 1px 4px;
+  border-radius: 4px;
+}
+
+.step-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.status {
+  font-family: "Patrick Hand", cursive;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  border: 1px dashed var(--border-sketch);
+  color: var(--muted);
+}
+
+.status.done {
+  border-color: var(--accent);
+  color: var(--accent);
+  border-style: solid;
+}
+
+.status.optional {
+  border-style: dotted;
+}
+
+.onboarding-footer {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--border);
+  display: flex;
+  gap: 8px;
+}
+
+/* ========== Card Detail View ========== */
+.card-detail-view {
+  display: flex;
+  height: 100vh;
+  overflow: visible;
+}
+
+/* 书签导航 */
+.bookmark-nav {
+  width: 24px;
+  min-width: 24px;
+  background: var(--bg);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: visible;
+  z-index: 50;
+}
+
+/* 书签滚动区域 */
+.bookmark-scroll-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 8px 0 32px 0; /* 底部留空间给退出按钮 */
+  overflow-y: auto;
+  overflow-x: visible;
+  gap: 2px;
+  scroll-snap-type: y mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.bookmark-scroll-area::-webkit-scrollbar {
+  display: none;
+}
+
+/* 书签项 - 可展开的竖条样式 */
+.bookmark-item {
+  position: relative;
+  min-height: 28px;
+  height: 28px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  scroll-snap-align: center;
+  width: 20px;
+  background: var(--bg);
+  border-radius: 0 6px 6px 0;
+  border: 1px solid transparent;
+  border-left: 3px solid var(--border-sketch);
+  padding: 0 4px;
+  transition: all 0.2s ease;
+  overflow: hidden;
+  z-index: 1;
+}
+
+.bookmark-item.active {
+  border-left-color: var(--accent);
+}
+
+.bookmark-item.hovered {
+  border-left-color: var(--accent);
+}
+
+.bookmark-item.hovered .bookmark-letter {
+  color: var(--accent);
+}
+
+.bookmark-letter {
+  font-family: "Caveat", cursive;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  flex-shrink: 0;
+  width: 12px;
+  text-align: center;
+  transition: color 0.2s ease;
+}
+
+.bookmark-item:hover .bookmark-letter,
+.bookmark-item.active .bookmark-letter {
+  color: var(--accent);
+}
+
+/* 浮动的展开书签 - 像抽出来一样浮在所有内容之上 */
+.bookmark-pullout {
+  position: fixed;
+  left: 0;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  background: var(--bg-paper);
+  border: 1px solid var(--border-sketch);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 6px 6px 0;
+  padding: 0 12px 0 4px;
+  z-index: 9999;
+  box-shadow: 4px 2px 12px rgba(0, 0, 0, 0.4);
+  animation: pullOut 0.15s ease-out forwards;
+  pointer-events: auto;
+  cursor: pointer;
+  white-space: nowrap;
+  max-width: 200px;
+}
+
+@keyframes pullOut {
+  from {
+    opacity: 0;
+    transform: translateX(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.bookmark-pullout .bookmark-name {
+  font-family: "Patrick Hand", cursive;
+  font-size: 13px;
+  color: var(--text-warm);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  
+}
+
+/* 分割线和 spacer - 将分割线推到下方 */
+.bookmark-spacer {
+  flex: 1;
+  min-height: 30px;
+}
+
+.bookmark-divider {
+  width: 16px;
+  height: 1px;
+  background: var(--border);
+  margin: 6px auto;
+}
+
+/* 退出按钮 - 固定在书签栏底部，与页码同一水平线 */
+.exit-btn {
+  position: absolute;
+  bottom: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.exit-btn:hover {
+  background: var(--accent-soft);
+}
+
+.exit-btn .icon {
+  width: 10px;
+  height: 10px;
+  stroke: var(--muted);
+  stroke-width: 2;
+  fill: none;
+}
+
+.exit-btn:hover .icon {
+  stroke: var(--accent);
+}
+
+/* 主内容区 */
+.card-detail-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.card-detail-main.deleting {
+  opacity: 0;
+  transform: translateX(20px);
+}
+
+.card-detail-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  padding-bottom: 80px; /* 为浮动控件留空间 */
+  animation: slideIn 0.25s ease-out;
+}
+
+/* 切换动画 */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.card-detail-content.slide-out-up {
+  animation: slideOutUp 0.15s ease-in forwards;
+}
+
+.card-detail-content.slide-out-down {
+  animation: slideOutDown 0.15s ease-in forwards;
+}
+
+@keyframes slideOutUp {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes slideOutDown {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+.card-detail-title {
+  font-family: "Caveat", cursive;
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--text-warm);
+  margin: 0 0 8px;
+  line-height: 1.2;
+}
+
+.card-detail-meta-inline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.card-type-badge {
+  font-family: "Patrick Hand", cursive;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 2px 8px;
+  border: 1px dashed var(--border-sketch);
+  border-radius: 10px;
+  color: var(--muted);
+}
+
+.card-source {
+  font-family: "Patrick Hand", cursive;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.delete-btn-inline {
+  background: transparent;
+  border: none;
+  padding: 4px;
+  cursor: pointer;
+  color: var(--muted);
+  transition: color 0.2s ease;
+  margin-left: auto;
+}
+
+.delete-btn-inline:hover {
+  color: var(--danger);
+}
+
+.delete-btn-inline .icon {
+  width: 16px;
+  height: 16px;
+}
+
+/* 苹果风格底部小白条 - 固定在整个视图底部 */
+.home-indicator {
+  position: absolute;
+  bottom: 0;
+  left: 24px; /* 避开左侧书签栏 */
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-bottom: 6px;
+  transition: all 0.25s ease;
+  z-index: 20;
+}
+
+/* 上方提示文字 */
+.indicator-hint-above {
+  font-family: "Patrick Hand", cursive;
+  font-size: 10px;
+  color: var(--muted);
+  opacity: 0;
+  transform: translateY(8px);
+  transition: all 0.2s ease;
+  margin-bottom: 4px;
+}
+
+.home-indicator.expanded .indicator-hint-above {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* 主控制区 */
+.indicator-main {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  transition: all 0.25s ease;
+}
+
+/* 小白条 */
+.indicator-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100px;
+  height: 20px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+  transition: all 0.25s ease;
+}
+
+.home-indicator.expanded .indicator-bar {
+  width: 140px;
+  height: 24px;
+  background: rgba(255, 255, 255, 0.35);
+}
+
+.indicator-text {
+  font-family: "Patrick Hand", cursive;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.7);
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.home-indicator.expanded .indicator-text {
+  font-size: 12px;
+  color: var(--text-warm);
+}
+
+/* 左右切换按钮 */
+.indicator-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  width: 28px;
+  height: 28px;
+  cursor: pointer;
+  color: var(--text-warm);
+  opacity: 0;
+  transform: scale(0.8);
+  pointer-events: none;
+  transition: all 0.2s ease;
+}
+
+.indicator-btn.left {
+  margin-right: 4px;
+}
+
+.indicator-btn.right {
+  margin-left: 4px;
+}
+
+.home-indicator.expanded .indicator-btn {
+  opacity: 1;
+  transform: scale(1);
+  pointer-events: auto;
+}
+
+.indicator-btn:hover {
+  color: var(--accent);
+  transform: scale(1.1);
+}
+
+.indicator-btn .icon {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+  stroke-width: 2;
+  fill: none;
+}
+
+/* Light mode 适配 */
+.light-mode .indicator-bar {
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.light-mode .home-indicator.expanded .indicator-bar {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.light-mode .indicator-text {
+  color: rgba(0, 0, 0, 0.5);
+}
+
+.light-mode .home-indicator.expanded .indicator-text {
+  color: var(--text-warm);
+}
+
+.card-detail-section {
+  margin-bottom: 16px;
+}
+
+.card-detail-section h2 {
+  font-family: "Caveat", cursive;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0 0 6px;
+  padding-bottom: 4px;
+  border-bottom: 1px dashed var(--border);
+}
+
+.card-detail-section p {
+  font-family: "Patrick Hand", cursive;
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.card-detail-body ul {
+  margin: 8px 0;
+  padding-left: 20px;
+}
+
+.card-detail-body li {
+  margin: 4px 0;
+}
+
+.card-detail-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.card-detail-tag {
+  font-family: "Patrick Hand", cursive;
+  font-size: 11px;
+  padding: 2px 8px;
+  border: 1px dashed var(--border-sketch);
+  border-radius: 10px;
+  color: var(--text-warm);
+}
+
+.card-detail-date {
+  font-size: 12px !important;
+  color: var(--muted) !important;
+}
+
+/* 翻页按钮 */
+.page-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-paper);
+  border: 1px dashed var(--border-sketch);
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  cursor: pointer;
+  color: var(--text-warm);
+  transition: all 0.2s ease;
+}
+
+.page-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.page-btn .icon {
+  width: 16px;
+  height: 16px;
+}
+
+.page-indicator {
+  font-family: "Patrick Hand", cursive;
+  font-size: 13px;
+  color: var(--muted);
+  min-width: 50px;
+  text-align: center;
+}
+
+/* ========== Delete Animation ========== */
+@keyframes cardDelete {
+  0% {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-20px) scale(0.95);
+    height: 0;
+    padding: 0;
+    margin: 0;
+  }
+}
+
+.saved-card.deleting,
+.deck-card.deleting {
+  animation: cardDelete 0.3s ease forwards;
+  overflow: hidden;
+}
+
+/* ========== Notice Icon (Incoming hint) ========== */
+.notice-icon {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  margin-left: 6px;
+  cursor: help;
+}
+
+.notice-icon .icon {
+  width: 14px;
+  height: 14px;
+  stroke: var(--muted);
+  stroke-width: 1.5;
+  fill: none;
+  opacity: 0.6;
+  transition: opacity 0.2s ease;
+}
+
+.notice-icon:hover .icon {
+  opacity: 1;
+}
+
+.notice-tooltip {
+  position: absolute;
+  left: calc(100% + 8px);
+  top: 50%;
+  transform: translateY(-50%);
+  white-space: nowrap;
+  font-family: "Patrick Hand", cursive;
+  font-size: 11px;
+  color: var(--text-warm);
+  background: var(--bg-paper);
+  border: 1px dashed var(--border-sketch);
+  border-radius: 6px;
+  padding: 4px 10px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+  z-index: 50;
+}
+
+.notice-icon:hover .notice-tooltip {
+  opacity: 1;
+}

@@ -325,6 +325,12 @@ export function activate(context: vscode.ExtensionContext) {
 
   // 注册侧边栏视图
   cardsViewProvider = new CardsViewProvider(context.extensionUri);
+  
+  // 设置 onboarding action handler
+  cardsViewProvider.setOnboardingHandler(async (action: string) => {
+    await handleOnboardingAction(context, action);
+  });
+  
   const cardsViewRegistration = vscode.window.registerWebviewViewProvider(
     "cards.sidebar",
     cardsViewProvider
@@ -670,70 +676,69 @@ async function showOnboardingPanel(
     return;
   }
 
-  const panel = vscode.window.createWebviewPanel(
-    "cards.onboarding",
-    "Lineu: Onboarding",
-    vscode.ViewColumn.One,
-    {
-      enableScripts: true,
-      retainContextWhenHidden: true,
-    }
-  );
+  if (!cardsViewProvider) {
+    return;
+  }
 
-  await refreshOnboardingPanel(panel, context);
-
-  panel.webview.onDidReceiveMessage(async (message: { type?: string }) => {
-    switch (message?.type) {
-      case "configureOpenRouter":
-        await vscode.commands.executeCommand("cards.configureOpenRouterApiKey");
-        await markApiKeyConfigured(context);
-        await refreshOnboardingPanel(panel, context);
-        break;
-      case "copyMcpConfig":
-        await vscode.commands.executeCommand("cards.copyMcpConfig");
-        await context.globalState.update(ONBOARDING_MCP_KEY, true);
-        await refreshOnboardingPanel(panel, context);
-        break;
-      case "createMcpConfig":
-        await vscode.commands.executeCommand("cards.createMcpConfig");
-        await refreshOnboardingPanel(panel, context);
-        break;
-      case "copyHooksConfig":
-        await vscode.commands.executeCommand("cards.copyHooksConfig");
-        await context.globalState.update(ONBOARDING_HOOKS_KEY, true);
-        await refreshOnboardingPanel(panel, context);
-        break;
-      case "createHooksConfig":
-        await vscode.commands.executeCommand("cards.createHooksConfig");
-        await refreshOnboardingPanel(panel, context);
-        break;
-      case "finish":
-        if (await isOnboardingComplete(context)) {
-          await context.globalState.update(ONBOARDING_COMPLETED_KEY, true);
-          panel.dispose();
-          vscode.commands.executeCommand("workbench.view.extension.cardsView");
-        } else {
-          vscode.window.showWarningMessage(
-            "Please complete Step 1 and Step 2 before continuing."
-          );
-        }
-        break;
-      case "close":
-        panel.dispose();
-        vscode.commands.executeCommand("workbench.view.extension.cardsView");
-        break;
-      default:
-        break;
-    }
+  // 获取当前 onboarding 状态
+  const state = await buildOnboardingState(context);
+  cardsViewProvider.updateOnboardingState({
+    apiKeyConfigured: state.apiKeyConfigured,
+    mcpConfigured: state.mcpConfigured,
+    hooksConfigured: state.hooksConfigured,
   });
+  
+  // 显示 onboarding 视图
+  cardsViewProvider.showOnboardingView();
+  cardsViewProvider.reveal();
 }
 
-async function refreshOnboardingPanel(
-  panel: vscode.WebviewPanel,
-  context: vscode.ExtensionContext
+async function handleOnboardingAction(
+  context: vscode.ExtensionContext,
+  action: string
 ): Promise<void> {
-  const state = await buildOnboardingState(context);
-  panel.webview.html = buildOnboardingHtml(panel.webview, state);
+  switch (action) {
+    case "configureOpenRouter":
+      await vscode.commands.executeCommand("cards.configureOpenRouterApiKey");
+      await markApiKeyConfigured(context);
+      break;
+    case "copyMcpConfig":
+      await vscode.commands.executeCommand("cards.copyMcpConfig");
+      await context.globalState.update(ONBOARDING_MCP_KEY, true);
+      break;
+    case "createMcpConfig":
+      await vscode.commands.executeCommand("cards.createMcpConfig");
+      break;
+    case "copyHooksConfig":
+      await vscode.commands.executeCommand("cards.copyHooksConfig");
+      await context.globalState.update(ONBOARDING_HOOKS_KEY, true);
+      break;
+    case "createHooksConfig":
+      await vscode.commands.executeCommand("cards.createHooksConfig");
+      break;
+    case "finish":
+      if (await isOnboardingComplete(context)) {
+        await context.globalState.update(ONBOARDING_COMPLETED_KEY, true);
+        vscode.window.showInformationMessage("Lineu setup complete!");
+      } else {
+        vscode.window.showWarningMessage(
+          "Please complete Step 1 and Step 2 before continuing."
+        );
+      }
+      break;
+    default:
+      break;
+  }
+
+  // 更新 onboarding 状态
+  if (cardsViewProvider) {
+    const state = await buildOnboardingState(context);
+    cardsViewProvider.updateOnboardingState({
+      apiKeyConfigured: state.apiKeyConfigured,
+      mcpConfigured: state.mcpConfigured,
+      hooksConfigured: state.hooksConfigured,
+    });
+  }
 }
 
 async function buildOnboardingState(
@@ -784,147 +789,6 @@ async function hasOpenRouterApiKey(
 ): Promise<boolean> {
   const value = await context.secrets.get("cards.openRouterApiKey");
   return Boolean(value);
-}
-
-function buildOnboardingHtml(
-  webview: vscode.Webview,
-  state: {
-    apiKeyConfigured: boolean;
-    mcpConfigured: boolean;
-    hooksConfigured: boolean;
-    requiredDone: boolean;
-  }
-): string {
-  const nonce = createNonce();
-  const csp = `default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}';`;
-  const step1Status = state.apiKeyConfigured ? "Done" : "Required";
-  const step2Status = state.mcpConfigured ? "Done" : "Required";
-  const step3Status = state.hooksConfigured ? "Done" : "Optional";
-  return `<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta http-equiv="Content-Security-Policy" content="${csp}" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Lineu Onboarding</title>
-    <style>
-      :root {
-        color-scheme: light dark;
-        --bg: #0c0e12;
-        --panel: #161922;
-        --border: rgba(255, 255, 255, 0.08);
-        --text: #edf1f7;
-        --muted: rgba(237, 241, 247, 0.6);
-        --accent: #4cc9f0;
-      }
-      body {
-        font-family: "SF Pro Text", "Segoe UI", sans-serif;
-        padding: 20px;
-        margin: 0;
-        background: radial-gradient(circle at top, rgba(76, 201, 240, 0.08), transparent 50%),
-          var(--bg);
-        color: var(--text);
-      }
-      h1 {
-        font-size: 16px;
-        margin: 0 0 14px;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-      }
-      .step {
-        border: 1px solid var(--border);
-        border-radius: 14px;
-        padding: 12px 14px;
-        margin-bottom: 12px;
-        background: var(--panel);
-      }
-      .step h2 {
-        font-size: 13px;
-        margin: 0 0 6px;
-        letter-spacing: 0.12em;
-        text-transform: uppercase;
-      }
-      .step p {
-        margin: 0 0 8px;
-        font-size: 12px;
-        color: var(--muted);
-      }
-      .status {
-        display: inline-block;
-        font-size: 10px;
-        padding: 2px 6px;
-        border-radius: 999px;
-        margin-left: 6px;
-        border: 1px solid var(--border);
-        color: var(--muted);
-      }
-      button {
-        border: none;
-        padding: 6px 10px;
-        border-radius: 999px;
-        cursor: pointer;
-        font-size: 12px;
-      }
-      button.primary {
-        background: var(--accent);
-        color: #041319;
-      }
-      button.secondary {
-        background: transparent;
-        color: var(--text);
-        border: 1px solid var(--border);
-      }
-      button:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
-      }
-      .footer {
-        margin-top: 14px;
-        display: flex;
-        gap: 8px;
-      }
-      code {
-        color: var(--text);
-      }
-    </style>
-  </head>
-  <body>
-    <h1>Welcome to Lineu</h1>
-    <div class="step">
-      <h2>Step 1: Configure OpenRouter API Key <span class="status">${step1Status}</span></h2>
-      <p>Required. This key is needed for generating cards via OpenRouter.</p>
-      <button class="primary" data-action="configureOpenRouter">Set API Key</button>
-    </div>
-    <div class="step">
-      <h2>Step 2: Configure MCP <span class="status">${step2Status}</span></h2>
-      <p>Required. Create the MCP config file or copy the snippet into your AI tool settings.</p>
-      <p>Cursor: <code>~/.cursor/mcp.json</code> · Claude Desktop: <code>~/Library/Application Support/Claude/claude_desktop_config.json</code></p>
-      <p>Restart your AI tool after saving the config.</p>
-      <button class="primary" data-action="createMcpConfig">Create MCP Config</button>
-      <button class="secondary" data-action="copyMcpConfig">Copy MCP Config</button>
-    </div>
-    <div class="step">
-      <h2>Step 3 (Optional): Configure Hooks <span class="status">${step3Status}</span></h2>
-      <p>Optional. Create hooks config or copy the snippet for auto-capture.</p>
-      <p>Cursor: <code>~/.cursor/hooks.json</code> · Claude Code: <code>~/.claude/settings.json</code></p>
-      <p>Restart your AI tool after saving the config.</p>
-      <button class="secondary" data-action="createHooksConfig">Create Hooks Config</button>
-      <button class="secondary" data-action="copyHooksConfig">Copy Hooks Config</button>
-    </div>
-    <div class="footer">
-      <button class="primary" data-action="finish" ${state.requiredDone ? "" : "disabled"}>Finish Setup</button>
-      <button class="secondary" data-action="close">Close</button>
-    </div>
-    <script nonce="${nonce}">
-      const vscode = acquireVsCodeApi();
-      document.querySelectorAll("[data-action]").forEach((button) => {
-        button.addEventListener("click", () => {
-          vscode.postMessage({ type: button.dataset.action });
-        });
-      });
-    </script>
-  </body>
-</html>`;
 }
 
 function createNonce(): string {
