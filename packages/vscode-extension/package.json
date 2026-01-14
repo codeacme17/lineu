@@ -4,6 +4,10 @@
   "version": "0.1.0",
   "description": "Capture and organize Lineu insights from AI conversations via MCP",
   "publisher": "lineu",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lineu/lineu"
+  },
   "main": "./dist/extension.js",
   "engines": {
     "vscode": "^1.90.0"
