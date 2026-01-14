@@ -7,6 +7,7 @@ export interface Card {
   source: "context" | "diff" | "both";
   createdAt: string;
   type: "bug" | "best_practice" | "knowledge";
+  project?: string;
 }
 
 export type WebviewMode = "deal" | "collection";
@@ -24,6 +25,8 @@ export interface WebviewInitialData {
   mode: WebviewMode;
   onboardingState?: OnboardingState;
   showOnboarding?: boolean;
+  currentProject?: string;
+  projects?: string[];
 }
 
 // Webview 发送给 VSCode 的消息类型

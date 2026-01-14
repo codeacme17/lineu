@@ -12,6 +12,8 @@ interface SavedPanelProps {
   onDrop: (cardId: string) => void;
   onOpenSettings: () => void;
   onCardClick?: (card: Card) => void;
+  currentProject?: string;
+  projects?: string[];
 }
 
 export function SavedPanel({
@@ -23,6 +25,8 @@ export function SavedPanel({
   onDrop,
   onOpenSettings,
   onCardClick,
+  currentProject,
+  projects = [],
 }: SavedPanelProps) {
   const [activeTag, setActiveTag] = useState("all");
   const [isDropReady, setIsDropReady] = useState(false);
@@ -81,7 +85,14 @@ export function SavedPanel({
       onDrop={handleDrop}
     >
       <div className="panel-header">
-        <div className="panel-title">Sparks</div>
+        <div className="panel-title-group">
+          <div className="panel-title">Sparks</div>
+          {currentProject && (
+            <div className="panel-project" title={`Project: ${currentProject}${projects.length > 1 ? ` (${projects.length} total)` : ""}`}>
+              {currentProject}
+            </div>
+          )}
+        </div>
         <div className="panel-actions">
           <button
             className={`btn btn-secondary ${editMode ? "active" : ""}`}

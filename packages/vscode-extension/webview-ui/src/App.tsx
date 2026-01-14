@@ -39,27 +39,6 @@ const mockDeck: Card[] = [
   },
 ];
 
-const mockSaved: Card[] = [
-  {
-    id: "mock-saved-1",
-    title: "Cache invalidation",
-    summary: "Scoped cache keys by workspace and reset on logout.",
-    tags: ["cache", "best_practice"],
-    source: "context",
-    createdAt: "2024-04-18T09:10:00Z",
-    type: "best_practice",
-  },
-  {
-    id: "mock-saved-2",
-    title: "Streaming parser",
-    summary: "Buffered partial chunks to avoid JSON parse errors.",
-    tags: ["stream", "json"],
-    source: "diff",
-    createdAt: "2024-04-17T12:30:00Z",
-    type: "knowledge",
-  },
-];
-
 // 从 window 对象获取初始数据（由扩展注入）
 declare global {
   interface Window {
@@ -90,15 +69,20 @@ export default function App() {
   // 卡片详细页状态
   const [selectedCard, setSelectedCard] = useState<Card | null>(null);
 
+  // 项目信息
+  const [currentProject, setCurrentProject] = useState<string>("");
+  const [projects, setProjects] = useState<string[]>([]);
+
   const { postMessage, isInVSCode } = useVSCode((message) => {
     switch (message.type) {
       case "update": {
-        const { cards, mode: newMode, onboardingState: obState, showOnboarding: showOb } = message.data;
+        const { cards, mode: newMode, onboardingState: obState, showOnboarding: showOb, currentProject: proj, projects: projs } = message.data;
         setMode(newMode);
         if (newMode === "collection") {
           setSavedCards(cards);
           setDeckCards([]);
         } else {
+          // 如果没有真实卡片，使用 mock 数据
           setDeckCards(cards.length > 0 ? cards : mockDeck);
           setSavedCards([]);
         }
@@ -107,6 +91,12 @@ export default function App() {
         }
         if (showOb !== undefined) {
           setShowOnboarding(showOb);
+        }
+        if (proj !== undefined) {
+          setCurrentProject(proj);
+        }
+        if (projs !== undefined) {
+          setProjects(projs);
         }
         break;
       }
@@ -128,9 +118,8 @@ export default function App() {
       if (initialData.mode === "collection") {
         setSavedCards(initialData.cards);
       } else {
-        setDeckCards(
-          initialData.cards.length > 0 ? initialData.cards : mockDeck
-        );
+        // 如果没有真实卡片，使用 mock 数据
+        setDeckCards(initialData.cards.length > 0 ? initialData.cards : mockDeck);
       }
       if (initialData.onboardingState) {
         setOnboardingState(initialData.onboardingState);
@@ -138,10 +127,17 @@ export default function App() {
       if (initialData.showOnboarding) {
         setShowOnboarding(true);
       }
-    } else if (!isInVSCode) {
-      // 浏览器开发模式，使用 mock 数据
+      if (initialData.currentProject) {
+        setCurrentProject(initialData.currentProject);
+      }
+      if (initialData.projects) {
+        setProjects(initialData.projects);
+      }
+    } else {
+      // 浏览器开发模式或无初始数据，使用 mock 数据
       setDeckCards(mockDeck);
-      setSavedCards(mockSaved);
+      setCurrentProject("demo-project");
+      setProjects(["demo-project", "other-project"]);
     }
 
     postMessage({ type: "ready" });
@@ -271,6 +267,8 @@ export default function App() {
         onDrop={handleDrop}
         onOpenSettings={handleOpenSettings}
         onCardClick={handleCardClick}
+        currentProject={currentProject}
+        projects={projects}
       />
       <DeckPanel cards={deckCards} onCardClick={handleCardClick} />
       

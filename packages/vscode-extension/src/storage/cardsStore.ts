@@ -1,17 +1,56 @@
 import { promises as fs } from "node:fs";
 import * as path from "node:path";
+import * as os from "node:os";
 import { createHash } from "node:crypto";
 import type { Card } from "@lineu/lib";
 
+/**
+ * Global cards storage at ~/.lineu/{project}/cards.json
+ * Each project has its own folder to avoid JSON bloat
+ */
 export class CardsStore {
-  constructor(private readonly workspaceRoot: string) {}
+  private readonly projectName: string;
 
+  constructor(private readonly workspaceRoot: string) {
+    this.projectName = path.basename(workspaceRoot);
+  }
+
+  /** Read cards for current project */
   async readCards(): Promise<Card[]> {
     try {
-      const filePath = this.getCollectionPath();
+      const filePath = this.getProjectStoragePath();
       const data = await fs.readFile(filePath, "utf8");
       const parsed = JSON.parse(data);
       return Array.isArray(parsed) ? (parsed as Card[]) : [];
+    } catch (error) {
+      if (isFileMissing(error)) {
+        return [];
+      }
+      throw error;
+    }
+  }
+
+  /** Get all project names that have cards */
+  async getProjects(): Promise<string[]> {
+    try {
+      const baseDir = this.getBaseStoragePath();
+      const entries = await fs.readdir(baseDir, { withFileTypes: true });
+      const projects: string[] = [];
+      
+      for (const entry of entries) {
+        if (entry.isDirectory()) {
+          // Check if cards.json exists in this folder
+          const cardsPath = path.join(baseDir, entry.name, "cards.json");
+          try {
+            await fs.access(cardsPath);
+            projects.push(entry.name);
+          } catch {
+            // No cards.json, skip
+          }
+        }
+      }
+      
+      return projects;
     } catch (error) {
       if (isFileMissing(error)) {
         return [];
@@ -27,6 +66,7 @@ export class CardsStore {
     const added: Card[] = [];
     for (const card of cards) {
       const sanitized = sanitizeCard(card);
+      sanitized.project = this.projectName;
       const hash = hashCard(sanitized);
       if (existingHashes.has(hash)) {
         continue;
@@ -46,18 +86,33 @@ export class CardsStore {
     };
   }
 
+  async deleteCard(cardId: string): Promise<boolean> {
+    const existing = await this.readCards();
+    const filtered = existing.filter((c) => c.id !== cardId);
+    if (filtered.length === existing.length) {
+      return false;
+    }
+    await this.writeCards(filtered);
+    return true;
+  }
+
   private async writeCards(cards: Card[]): Promise<void> {
-    const filePath = this.getCollectionPath();
+    const filePath = this.getProjectStoragePath();
     await fs.mkdir(path.dirname(filePath), { recursive: true });
     await fs.writeFile(filePath, JSON.stringify(cards, null, 2), "utf8");
   }
 
-  private getCollectionPath(): string {
-    return path.join(
-      this.workspaceRoot,
-      ".vscode",
-      "knowledge-cards.json"
-    );
+  private getBaseStoragePath(): string {
+    return path.join(os.homedir(), ".lineu");
+  }
+
+  private getProjectStoragePath(): string {
+    return path.join(this.getBaseStoragePath(), this.projectName, "cards.json");
+  }
+
+  /** Get project name */
+  getProjectName(): string {
+    return this.projectName;
   }
 }
 

@@ -16,4 +16,6 @@ export type Card = {
   source: CardSource;
   codeRefs?: CodeRef[];
   createdAt: string;
+  /** Project name (workspace folder name) */
+  project?: string;
 };

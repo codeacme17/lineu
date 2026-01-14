@@ -92,6 +92,12 @@ body {
   border-bottom: 1px dashed var(--border);
 }
 
+.panel-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
 .panel-title {
   font-family: "Caveat", cursive;
   font-size: 14px;
@@ -99,6 +105,17 @@ body {
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--text-warm);
+}
+
+.panel-project {
+  font-size: 10px;
+  color: var(--text-muted);
+  opacity: 0.7;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: default;
 }
 
 .panel-actions {
@@ -559,6 +576,17 @@ body {
   background: rgba(26, 25, 22, 0.85);
   pointer-events: none;
   z-index: 10;
+}
+
+/* Light mode: drop 和 tips 浮层使用白色字体 */
+.light-mode .drop-ready::after {
+  color: #fff;
+  border-color: #fff;
+}
+
+.light-mode .deck-info-overlay {
+  color: #fff;
+  border-color: #fff;
 }
 
 /* Dragging states */

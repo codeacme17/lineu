@@ -50,7 +50,7 @@ export function OnboardingView({
             <h2>Step 1: Configure OpenRouter API Key</h2>
             {!isHelpMode && (
               <span className={`status ${state.apiKeyConfigured ? "done" : ""}`}>
-                {state.apiKeyConfigured ? "✓ Done" : "Required"}
+                {state.apiKeyConfigured ? "✓" : "Required"}
               </span>
             )}
           </div>
@@ -74,7 +74,7 @@ export function OnboardingView({
             <h2>Step 2: Configure MCP</h2>
             {!isHelpMode && (
               <span className={`status ${state.mcpConfigured ? "done" : ""}`}>
-                {state.mcpConfigured ? "✓ Done" : "Required"}
+                {state.mcpConfigured ? "✓" : "Required"}
               </span>
             )}
           </div>
@@ -112,7 +112,7 @@ export function OnboardingView({
             <h2>Step 3: Configure Hooks</h2>
             {!isHelpMode && (
               <span className={`status optional ${state.hooksConfigured ? "done" : ""}`}>
-                {state.hooksConfigured ? "✓ Done" : "Optional"}
+                {state.hooksConfigured ? "✓" : "Optional"}
               </span>
             )}
           </div>

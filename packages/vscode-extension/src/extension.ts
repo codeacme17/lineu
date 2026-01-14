@@ -52,9 +52,12 @@ export function activate(context: vscode.ExtensionContext) {
         });
 
         const store = new CardsStore(workspaceRoot);
+        const projects = await store.getProjects();
         showCardsWebview({
           cards,
           mode: "deal",
+          currentProject: store.getProjectName(),
+          projects,
           onFavorite: async (card) => {
             const result = await store.addCards([card]);
             if (result.added.length > 0) {
@@ -84,9 +87,12 @@ export function activate(context: vscode.ExtensionContext) {
 
         const store = new CardsStore(workspaceRoot);
         const cards = await store.readCards();
+        const projects = await store.getProjects();
         showCardsWebview({
           cards,
           mode: "collection",
+          currentProject: store.getProjectName(),
+          projects,
         });
       } catch (error) {
         vscode.window.showErrorMessage(
@@ -397,9 +403,12 @@ async function handleIncomingContext(
 
     // Show cards in webview
     const store = new CardsStore(workspaceRoot);
+    const projects = await store.getProjects();
     showCardsWebview({
       cards,
       mode: "deal",
+      currentProject: store.getProjectName(),
+      projects,
       onFavorite: async (card) => {
         const result = await store.addCards([card]);
         if (result.added.length > 0) {
@@ -473,9 +482,14 @@ function showCardsWebview(options: {
   cards: Card[];
   mode: "deal" | "collection";
   onFavorite?: (card: Card) => Promise<void>;
+  currentProject?: string;
+  projects?: string[];
 }): void {
   if (!cardsViewProvider) {
     return;
+  }
+  if (options.currentProject !== undefined && options.projects !== undefined) {
+    cardsViewProvider.setProjectInfo(options.currentProject, options.projects);
   }
   cardsViewProvider.update(options.cards, options.mode, options.onFavorite);
   cardsViewProvider.reveal();
@@ -506,12 +520,14 @@ function getHookScriptPath(extensionPath: string): string | null {
 
 function buildHooksConfigSnippet(target: string, hookPath: string): string {
   if (target === "cursor") {
+    // Cursor 需要 version 字段，必须是数字
     return JSON.stringify(
       {
+        version: 1,
         hooks: {
           stop: [
             {
-              command: hookPath,
+              command: `python3 "${hookPath}"`,
             },
           ],
         },
@@ -521,12 +537,19 @@ function buildHooksConfigSnippet(target: string, hookPath: string): string {
     );
   }
 
+  // Claude Code 格式
   return JSON.stringify(
     {
       hooks: {
-        stop: [
+        Stop: [
           {
-            command: hookPath,
+            matcher: ".*",
+            hooks: [
+              {
+                type: "command",
+                command: `python3 "${hookPath}"`,
+              },
+            ],
           },
         ],
       },
@@ -750,14 +773,15 @@ async function buildOnboardingState(
   requiredDone: boolean;
 }> {
   const apiKeyConfigured = await hasOpenRouterApiKey(context);
-  const mcpConfigured =
-    context.globalState.get<boolean>(ONBOARDING_MCP_KEY) ?? false;
-  const hooksConfigured =
-    context.globalState.get<boolean>(ONBOARDING_HOOKS_KEY) ?? false;
+  const mcpConfigured = await checkMcpConfigured();
+  const hooksConfigured = await checkHooksConfigured();
   const requiredDone = apiKeyConfigured && mcpConfigured;
-  if (apiKeyConfigured) {
-    await context.globalState.update(ONBOARDING_API_KEY, true);
-  }
+  
+  // 同步更新 globalState
+  await context.globalState.update(ONBOARDING_API_KEY, apiKeyConfigured);
+  await context.globalState.update(ONBOARDING_MCP_KEY, mcpConfigured);
+  await context.globalState.update(ONBOARDING_HOOKS_KEY, hooksConfigured);
+  
   return {
     apiKeyConfigured,
     mcpConfigured,
@@ -770,9 +794,59 @@ async function isOnboardingComplete(
   context: vscode.ExtensionContext
 ): Promise<boolean> {
   const apiKeyConfigured = await hasOpenRouterApiKey(context);
-  const mcpConfigured =
-    context.globalState.get<boolean>(ONBOARDING_MCP_KEY) ?? false;
+  const mcpConfigured = await checkMcpConfigured();
   return apiKeyConfigured && mcpConfigured;
+}
+
+/**
+ * 检查 MCP 配置文件是否存在并包含 lineu 配置
+ */
+async function checkMcpConfigured(): Promise<boolean> {
+  const home = os.homedir();
+  const configPaths = [
+    path.join(home, ".cursor", "mcp.json"),
+    path.join(home, "Library", "Application Support", "Claude", "claude_desktop_config.json"),
+  ];
+
+  for (const configPath of configPaths) {
+    try {
+      const content = await readFile(configPath, "utf-8");
+      const config = JSON.parse(content);
+      // 检查是否有 lineu 配置
+      if (config.mcpServers?.lineu || config.servers?.lineu) {
+        return true;
+      }
+    } catch {
+      // 文件不存在或解析失败，继续检查下一个
+    }
+  }
+  return false;
+}
+
+/**
+ * 检查 Hooks 配置文件是否存在并包含 lineu 配置
+ */
+async function checkHooksConfigured(): Promise<boolean> {
+  const home = os.homedir();
+  const configPaths = [
+    path.join(home, ".cursor", "hooks.json"),
+    path.join(home, ".claude", "settings.json"),
+  ];
+
+  for (const configPath of configPaths) {
+    try {
+      const content = await readFile(configPath, "utf-8");
+      const config = JSON.parse(content);
+      // 检查是否有 lineu 相关的 hook
+      const hooksStr = JSON.stringify(config);
+      if (hooksStr.includes("lineu") || hooksStr.includes("lineu-capture")) {
+        return true;
+      }
+    } catch {
+      // 文件不存在或解析失败，继续检查下一个
+    }
+  }
+  return false;
 }
 
 async function markApiKeyConfigured(

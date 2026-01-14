@@ -48,7 +48,7 @@ export interface PushResult {
  * Push context to editor extension via URI handler.
  *
  * This writes the context to a temp file and triggers the
- * {editor}://lineu.vscode-knowledge-cards/capture URI.
+ * {editor}://lineu.lineu/capture URI.
  *
  * @param context - The context to push
  * @param options - Options including which editor to target (defaults to "cursor")
@@ -66,7 +66,7 @@ export async function pushToVSCode(
     await writeFile(tempFile, JSON.stringify(context, null, 2), "utf-8");
 
     // Build URI with file path
-    const uri = `${scheme}://lineu.vscode-knowledge-cards/capture?file=${encodeURIComponent(tempFile)}`;
+    const uri = `${scheme}://lineu.lineu/capture?file=${encodeURIComponent(tempFile)}`;
 
     // Platform-specific open command
     const openCmd = getOpenCommand(uri);

@@ -123,7 +123,7 @@ Lineu works with AI coding assistants through MCP (Model Context Protocol). Afte
 ```bash
 cd packages/vscode-extension
 pnpm package
-code --install-extension vscode-knowledge-cards-0.1.0.vsix
+code --install-extension lineu-0.1.0.vsix
 ```
 
 ### How It Works

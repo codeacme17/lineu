@@ -23,7 +23,7 @@ pnpm clean
 ```bash
 # Build specific package
 pnpm --filter @lineu/mcp-server build
-pnpm --filter vscode-knowledge-cards build
+pnpm --filter lineu build
 pnpm --filter @lineu/lib build
 
 # Run MCP server locally
@@ -41,7 +41,7 @@ This is a pnpm monorepo with three packages:
 packages/
 ├── lib/              # @lineu/lib - Shared card types and generation logic (internal)
 ├── mcp-server/       # @lineu/mcp-server - MCP server exposing capture_context tool
-└── vscode-extension/ # vscode-knowledge-cards - VSCode extension for card generation
+└── vscode-extension/ # lineu - VSCode extension for spark generation
 ```
 
 ### Data Flow
@@ -53,14 +53,14 @@ packages/
 
 **MCP Push flow (AI-initiated):**
 1. AI assistant (Claude Code, etc.) calls MCP `capture_context` tool with `pushToExtension: true`
-2. MCP server writes context to temp file, triggers `{editor}://lineu.vscode-knowledge-cards/capture?file=...` URI
+2. MCP server writes context to temp file, triggers `{editor}://lineu.lineu/capture?file=...` URI
 3. Extension's URI handler reads file, generates cards, shows webview
 
 ### Key Components
 
 - **@lineu/lib**: Core card generation - parses git diffs, extracts patterns (functions, classes, config), creates up to 7 cards with stopword filtering and SHA256 deduplication
 - **@lineu/mcp-server**: Stdio-based MCP server using `@modelcontextprotocol/sdk`, Zod validation, supports pushing context to editors via URI handler
-- **vscode-knowledge-cards**: Extension with URI handler (`onUri` activation) for receiving MCP push, 5-tier MCP server resolution
+- **lineu**: Extension with URI handler (`onUri` activation) for receiving MCP push, 5-tier MCP server resolution
 
 ### MCP `capture_context` Tool
 
@@ -108,7 +108,7 @@ This project includes a hook that automatically triggers the knowledge capture U
 ### How It Works
 
 1. AI assistant completes a task → `stop` hook triggers
-2. Hook directly opens `cursor://lineu.vscode-knowledge-cards/capture?file=...` URI
+2. Hook directly opens `cursor://lineu.lineu/capture?file=...` URI
 3. Extension shows capture dialog → user can save knowledge card
 
 **No AI involvement required** - the hook triggers the extension directly.

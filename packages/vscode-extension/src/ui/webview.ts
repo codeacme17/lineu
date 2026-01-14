@@ -21,8 +21,15 @@ export class CardsViewProvider implements vscode.WebviewViewProvider {
     hooksConfigured: false,
   };
   private showOnboarding = false;
+  private currentProject = "";
+  private projects: string[] = [];
 
   constructor(private readonly extensionUri: vscode.Uri) {}
+
+  setProjectInfo(currentProject: string, projects: string[]) {
+    this.currentProject = currentProject;
+    this.projects = projects;
+  }
 
   resolveWebviewView(webviewView: vscode.WebviewView): void {
     this.view = webviewView;
@@ -115,6 +122,8 @@ export class CardsViewProvider implements vscode.WebviewViewProvider {
         mode: this.mode,
         onboardingState: this.onboardingState,
         showOnboarding: this.showOnboarding,
+        currentProject: this.currentProject,
+        projects: this.projects,
       },
     });
     // 重置标记
@@ -149,6 +158,8 @@ export class CardsViewProvider implements vscode.WebviewViewProvider {
       mode: this.mode,
       onboardingState: this.onboardingState,
       showOnboarding: this.showOnboarding,
+      currentProject: this.currentProject,
+      projects: this.projects,
     });
 
     return `<!DOCTYPE html>
