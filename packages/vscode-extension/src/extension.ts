@@ -4,45 +4,37 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import { exec } from "node:child_process";
 import { promisify } from "node:util";
-import { readFile, unlink } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 
-import { generateCards, Card } from "@lineu/lib";
+import {
+  generateCards,
+  Card,
+  getBaseStoragePath,
+  getProjectName,
+  readCardsFile,
+} from "@lineu/lib";
 import { CardsStore } from "./storage/cardsStore.js";
 import { CardsViewProvider } from "./ui/webview.js";
 
 const execAsync = promisify(exec);
 let cardsViewProvider: CardsViewProvider | null = null;
+let inboxWatcher: fs.FSWatcher | null = null;
 const ONBOARDING_COMPLETED_KEY = "cards.onboardingCompleted";
 const ONBOARDING_MCP_KEY = "cards.onboarding.mcpConfigured";
 const ONBOARDING_COMMANDS_KEY = "cards.onboarding.commandsConfigured";
 
 export function activate(context: vscode.ExtensionContext) {
-  // Register URI handler for MCP server to push context
-  const uriHandler = vscode.window.registerUriHandler({
-    handleUri(uri: vscode.Uri) {
-      if (uri.path === "/capture") {
-        const params = new URLSearchParams(uri.query);
-        const filePath = params.get("file");
-        if (filePath) {
-          handleIncomingContext(filePath);
-        }
-      }
-    },
-  });
+  // Start watching inbox files for changes from MCP server
+  startInboxWatcher();
 
   const captureCommand = vscode.commands.registerCommand(
     "cards.captureContextAndGenerate",
     async () => {
       try {
         const workspaceRoot = getWorkspaceRoot();
-        if (!workspaceRoot) {
-          vscode.window.showErrorMessage("Open a workspace to capture cards.");
-          return;
-        }
-
         const selectionText = getSelectionText();
         const contextText = await getContextText(selectionText);
-        const diffText = await getGitDiff(workspaceRoot);
+        const diffText = workspaceRoot ? await getGitDiff(workspaceRoot) : "";
 
         const cards = generateCards({
           contextText,
@@ -78,13 +70,7 @@ export function activate(context: vscode.ExtensionContext) {
     "cards.openCollection",
     async () => {
       try {
-        const workspaceRoot = getWorkspaceRoot();
-        if (!workspaceRoot) {
-          vscode.window.showErrorMessage("Open a workspace to view cards.");
-          return;
-        }
-
-        const store = new CardsStore(workspaceRoot);
+        const store = new CardsStore(getWorkspaceRoot());
         const cards = await store.readCards();
         const projects = await store.getProjects();
         showCardsWebview({
@@ -211,35 +197,11 @@ export function activate(context: vscode.ExtensionContext) {
   const copySparkCommands = vscode.commands.registerCommand(
     "cards.copySparkCommands",
     async () => {
-      const workspaceRoot = getWorkspaceRoot();
-
-      // Choose scope: global or project
-      const scope = await vscode.window.showQuickPick(
-        [
-          { 
-            label: "Global (all projects)", 
-            id: "global", 
-            description: "~/.cursor/commands/ or ~/.claude/commands/" 
-          },
-          { 
-            label: "Current project only", 
-            id: "project", 
-            description: ".cursor/commands/ or .claude/commands/",
-            disabled: !workspaceRoot
-          },
-        ].filter(item => !item.disabled),
-        { placeHolder: "Where to install Spark commands?" }
-      );
-
-      if (!scope) {
-        return;
-      }
-
       const platform = await vscode.window.showQuickPick(
         [
-          { label: "Cursor", id: "cursor", description: ".cursor/commands/" },
-          { label: "Claude Code", id: "claude", description: ".claude/commands/" },
-          { label: "Both", id: "both", description: "Copy to both platforms" },
+          { label: "Cursor", id: "cursor" },
+          { label: "Claude Code", id: "claude" },
+          { label: "Both", id: "both" },
         ],
         { placeHolder: "Select AI platform" }
       );
@@ -249,26 +211,25 @@ export function activate(context: vscode.ExtensionContext) {
       }
 
       try {
-        const targetRoot = scope.id === "global" ? os.homedir() : workspaceRoot!;
+        // Always install globally to home directory
         await copySparkCommandsToWorkspace(
           context.extensionPath,
-          targetRoot,
+          os.homedir(),
           platform.id as "cursor" | "claude" | "both"
         );
         await context.globalState.update(ONBOARDING_COMMANDS_KEY, true);
         
-        const scopeDesc = scope.id === "global" ? "globally" : "to project";
         const platformDesc = platform.id === "both" 
-          ? "Cursor & Claude"
+          ? "Cursor & Claude Code"
           : platform.id === "cursor" 
             ? "Cursor" 
             : "Claude Code";
         vscode.window.showInformationMessage(
-          `Spark commands installed ${scopeDesc} for ${platformDesc}`
+          `Spark commands installed for ${platformDesc}`
         );
       } catch (error) {
         vscode.window.showErrorMessage(
-          `Failed to copy Spark commands: ${formatError(error)}`
+          `Failed to install commands: ${formatError(error)}`
         );
       }
     }
@@ -294,7 +255,6 @@ export function activate(context: vscode.ExtensionContext) {
     cardsViewProvider
   );
   context.subscriptions.push(
-    uriHandler,
     captureCommand,
     openCollection,
     copyMcpServerPath,
@@ -309,127 +269,83 @@ export function activate(context: vscode.ExtensionContext) {
 }
 
 export function deactivate() {
-  // No-op for now
+  // Stop watching inbox files
+  if (inboxWatcher) {
+    inboxWatcher.close();
+    inboxWatcher = null;
+  }
 }
 
-// ============ MCP 上下文处理 ============
+// ============ Inbox 文件监听 ============
 
 /**
- * Handle incoming context from MCP server via URI handler.
- * The MCP server writes context to a temp file and triggers this URI.
+ * Start watching the ~/.lineu directory for inbox.json changes.
+ * When MCP server writes to inbox.json, we pick up the cards and display them.
  */
-async function handleIncomingContext(
-  filePath: string
-): Promise<void> {
+function startInboxWatcher(): void {
+  const baseDir = getBaseStoragePath();
+
+  // Ensure the directory exists
+  fs.mkdirSync(baseDir, { recursive: true });
+
+  // Watch the entire ~/.lineu directory for changes
+  inboxWatcher = fs.watch(baseDir, { recursive: true }, (eventType, filename) => {
+    if (filename && filename.endsWith("inbox.json")) {
+      // Extract project name from path: {project}/inbox.json
+      const projectName = path.dirname(filename);
+      if (projectName && projectName !== ".") {
+        void handleInboxChange(projectName);
+      }
+    }
+  });
+}
+
+/**
+ * Handle inbox.json change for a specific project.
+ * Read the cards and display them in the webview.
+ */
+async function handleInboxChange(projectName: string): Promise<void> {
   try {
-    const workspaceRoot = getWorkspaceRoot();
-    if (!workspaceRoot) {
-      vscode.window.showErrorMessage("Open a workspace to receive cards.");
+    const inboxPath = path.join(getBaseStoragePath(), projectName, "inbox.json");
+
+    // Read cards from inbox
+    const cards = await readCardsFile(inboxPath);
+
+    if (cards.length === 0) {
       return;
     }
 
-    // Read context from temp file
-    const content = await readFile(filePath, "utf-8");
-    const incomingContext = JSON.parse(content) as {
-      action?: "create" | "respark" | "deepspark";
-      cardId?: string;
-      conversationText?: string;
-      rawConversation?: string;
-      diff?: string;
-      selection?: string;
-      metadata?: Record<string, unknown>;
-      type?: "bug" | "best_practice" | "knowledge";
-    };
+    // Get store for saving
+    const store = new CardsStore(getWorkspaceRoot());
+    const projects = await store.getProjects();
 
-    const store = new CardsStore(workspaceRoot);
-    const action = incomingContext.action ?? "create";
-
-    // Handle respark/deepspark: replace existing card
-    if ((action === "respark" || action === "deepspark") && incomingContext.cardId) {
-      const cards = generateCards({
-        contextText: incomingContext.conversationText || "",
-        diffText: incomingContext.diff || "",
-        selectionText: incomingContext.selection || "",
-        type: incomingContext.type,
-      });
-
-      if (cards.length > 0) {
-        const newCard = cards[0];
-        // Preserve the original card ID for replacement
-        newCard.id = incomingContext.cardId;
-        // Attach raw conversation
-        if (incomingContext.rawConversation) {
-          newCard.context = incomingContext.rawConversation;
+    showCardsWebview({
+      cards,
+      mode: "deal",
+      currentProject: projectName,
+      projects,
+      onFavorite: async (card) => {
+        const result = await store.addCards([card]);
+        if (result.added.length > 0) {
+          vscode.window.showInformationMessage("Card saved.");
+        } else {
+          vscode.window.showInformationMessage("Card already saved.");
         }
-        
-        await store.replaceCard(incomingContext.cardId, newCard);
-        
-        // Refresh the webview with updated cards
-        const allCards = await store.readCards();
-        const projects = await store.getProjects();
-        showCardsWebview({
-          cards: allCards,
-          mode: "collection",
-          currentProject: store.getProjectName(),
-          projects,
-        });
-        
-        const actionLabel = action === "respark" ? "Resparked" : "Deep dived";
-        vscode.window.showInformationMessage(`${actionLabel} card updated.`);
-      }
-    } else {
-      // Normal create flow
-      const cards = generateCards({
-        contextText: incomingContext.conversationText || "",
-        diffText: incomingContext.diff || "",
-        selectionText: incomingContext.selection || "",
-        type: incomingContext.type,
-      });
+      },
+    });
 
-      // Attach raw conversation to cards for respark/deepspark
-      if (incomingContext.rawConversation) {
-        for (const card of cards) {
-          card.context = incomingContext.rawConversation;
-        }
-      }
+    vscode.window.showInformationMessage(
+      `Received ${cards.length} card(s) from conversation.`
+    );
 
-      if (cards.length === 0) {
-        vscode.window.showInformationMessage("No cards generated from context.");
-        return;
-      }
-
-      // Show cards in webview
-      const projects = await store.getProjects();
-      showCardsWebview({
-        cards,
-        mode: "deal",
-        currentProject: store.getProjectName(),
-        projects,
-        onFavorite: async (card) => {
-          const result = await store.addCards([card]);
-          if (result.added.length > 0) {
-            vscode.window.showInformationMessage("Card saved.");
-          } else {
-            vscode.window.showInformationMessage("Card already saved.");
-          }
-        },
-      });
-
-      vscode.window.showInformationMessage(
-        `Received ${cards.length} card(s) from vibe-coding session.`
-      );
-    }
-
-    // Cleanup temp file
+    // Clear inbox after displaying (optional, keeps it clean)
     try {
-      await unlink(filePath);
+      await fs.promises.unlink(inboxPath);
     } catch {
       // Ignore cleanup errors
     }
   } catch (error) {
-    vscode.window.showErrorMessage(
-      `Failed to process incoming context: ${formatError(error)}`
-    );
+    // Silently ignore errors (file might be mid-write)
   }
 }
 

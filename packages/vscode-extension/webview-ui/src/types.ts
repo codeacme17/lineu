@@ -3,6 +3,8 @@ export interface Card {
   id: string;
   title: string;
   summary: string;
+  /** Detailed explanation */
+  detail?: string;
   tags: string[];
   source: "context" | "diff" | "both";
   createdAt: string;

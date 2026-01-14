@@ -1,65 +1,51 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { pushToVSCode, type EditorType } from "../vscode-bridge.js";
-import { detectEditor } from "../utils.js";
+import {
+  getProjectName,
+  getInboxPath,
+  writeCardsFile,
+  type Card,
+} from "@lineu/lib";
 
 const CardTypeSchema = z.enum(["bug", "best_practice", "knowledge"]);
 
-const ActionSchema = z.enum(["create", "respark", "deepspark"]);
-
 const InputSchema = {
-  action: ActionSchema.optional().describe(
-    "Action type: create (new card), respark (regenerate with different angle), deepspark (deep dive replacement)."
-  ),
-  cardId: z
-    .string()
-    .optional()
-    .describe("Card ID to replace. Required for respark/deepspark actions."),
   type: CardTypeSchema.optional().describe(
     "Card type: bug (problem fix), best_practice (code best practices), knowledge (technical concepts)."
   ),
-  seedText: z
+  title: z
     .string()
     .optional()
-    .describe("Conversation context or summary from the AI session."),
+    .describe("Short title for the card (5-10 words)."),
+  summary: z
+    .string()
+    .optional()
+    .describe("Brief summary of the insight (1-2 sentences)."),
+  detail: z
+    .string()
+    .optional()
+    .describe("Detailed explanation with context, examples, and key points."),
+  tags: z
+    .array(z.string())
+    .optional()
+    .describe("1-2 tags for categorization. MAXIMUM 2 tags."),
   rawConversation: z
     .string()
     .optional()
     .describe(
       "Full conversation history for context. Stored but not displayed. " +
-      "Used for respark/deepspark features. Include the complete dialogue."
+        "Used for respark/deepspark features. Include the complete dialogue."
     ),
-  diff: z.string().optional().describe("Git diff content if available."),
-  selection: z
-    .string()
-    .optional()
-    .describe("User's code selection if available."),
-  recentInputs: z.array(z.string()).optional().describe("Recent inputs list."),
-  metadata: z
-    .record(z.string())
-    .optional()
-    .describe("Client-provided metadata."),
   pushToExtension: z
     .boolean()
     .optional()
-    .describe("If true, push context to editor extension via URI handler."),
-  editor: z
-    .enum(["cursor", "vscode", "vscodium", "windsurf"])
-    .optional()
-    .describe("Target editor (auto-detected if not specified)."),
+    .describe("If true, write cards to inbox for extension to pick up."),
 };
 
 const OutputSchema = {
-  conversationText: z
-    .string()
-    .describe("Captured context text without summarization."),
-  recentInputs: z.array(z.string()).describe("Recent inputs as provided."),
-  metadata: z.record(z.unknown()).describe("Metadata about the capture."),
-  pushed: z
-    .boolean()
-    .optional()
-    .describe("Whether context was pushed to VSCode extension."),
-  pushError: z.string().optional().describe("Error message if push failed."),
+  cardsGenerated: z.number().describe("Number of cards generated."),
+  projectName: z.string().describe("Project name where cards were saved."),
+  inboxPath: z.string().describe("Path to the inbox file."),
 };
 
 export function registerCaptureContext(server: McpServer): void {
@@ -74,51 +60,45 @@ export function registerCaptureContext(server: McpServer): void {
       outputSchema: OutputSchema,
     },
     async (args) => {
-      const now = new Date().toISOString();
-      const conversationText = args?.seedText ?? "";
-      const recentInputs = args?.recentInputs ?? [];
-      const metadata = {
-        timestamp: now,
-        cwd: process.cwd(),
-        ...(args?.metadata ?? {}),
-      };
-
-      let pushed: boolean | undefined;
-      let pushError: string | undefined;
-
-      const editor = (args?.editor as EditorType) ?? detectEditor();
+      const title = args?.title ?? "Untitled";
+      const summary = args?.summary ?? "";
+      const detail = args?.detail;
+      const tags = ((args?.tags as string[]) ?? []).slice(0, 2); // Max 2 tags
+      const rawConversation = args?.rawConversation;
       const cardType = args?.type as
         | "bug"
         | "best_practice"
         | "knowledge"
         | undefined;
 
+      // Determine project name from cwd
+      const cwd = process.cwd();
+      const projectName = getProjectName(cwd);
+
+      // Build card directly from MCP input
+      const card: Card = {
+        id: `card-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        type: cardType,
+        title,
+        summary,
+        detail,
+        tags,
+        source: "context",
+        createdAt: new Date().toISOString(),
+        project: projectName,
+        context: rawConversation,
+      };
+
+      const cards = [card];
+
+      // Write to inbox (replaces existing inbox content)
+      const inboxPath = getInboxPath(projectName);
+
       if (args?.pushToExtension) {
-        const action = args?.action as "create" | "respark" | "deepspark" | undefined;
-        const result = await pushToVSCode(
-          {
-            action: action ?? "create",
-            cardId: args.cardId,
-            conversationText,
-            rawConversation: args.rawConversation,
-            diff: args.diff,
-            selection: args.selection,
-            metadata,
-            type: cardType,
-          },
-          { editor }
-        );
-        pushed = result.success;
-        if (!result.success) {
-          pushError = result.error;
-        }
+        await writeCardsFile(inboxPath, cards);
       }
 
-      const statusMessage = pushed
-        ? `Context captured and sent to ${editor} extension.`
-        : pushed === false
-          ? `Context captured but failed to send to ${editor}: ${pushError}`
-          : "Context captured.";
+      const statusMessage = `Generated card "${title}" for project "${projectName}".`;
 
       return {
         content: [
@@ -128,11 +108,9 @@ export function registerCaptureContext(server: McpServer): void {
           },
         ],
         structuredContent: {
-          conversationText,
-          recentInputs,
-          metadata,
-          pushed,
-          pushError,
+          cardsGenerated: 1,
+          projectName,
+          inboxPath,
         },
       };
     }

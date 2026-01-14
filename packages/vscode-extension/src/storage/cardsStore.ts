@@ -11,8 +11,8 @@ import type { Card } from "@lineu/lib";
 export class CardsStore {
   private readonly projectName: string;
 
-  constructor(private readonly workspaceRoot: string) {
-    this.projectName = path.basename(workspaceRoot);
+  constructor(workspaceRoot?: string) {
+    this.projectName = workspaceRoot ? path.basename(workspaceRoot) : "global";
   }
 
   /** Read cards for current project */

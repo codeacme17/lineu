@@ -55,16 +55,11 @@ export function OnboardingView({
           </div>
           <p>
             {isHelpMode
-              ? "Create or update the MCP config file for your AI tool."
-              : "Required. Create the MCP config file or copy the snippet into your AI tool settings."}
-          </p>
-          <p className="step-hint">
-            Cursor: <code>~/.cursor/mcp.json</code>
-            <br />
-            Claude Desktop: <code>~/Library/Application Support/Claude/claude_desktop_config.json</code>
+              ? "Create the MCP config file for your AI tool."
+              : "Required. Create the MCP config file for Lineu to work."}
           </p>
           {!isHelpMode && (
-            <p className="step-hint">Restart your AI tool after saving the config.</p>
+            <p className="step-hint">Restart your AI tool after creating the config.</p>
           )}
           <div className="step-actions">
             <button
@@ -72,12 +67,6 @@ export function OnboardingView({
               onClick={() => onAction("createMcpConfig")}
             >
               Create MCP Config
-            </button>
-            <button
-              className="btn btn-secondary"
-              onClick={() => onAction("copyMcpConfig")}
-            >
-              Copy Config
             </button>
           </div>
         </div>
@@ -93,22 +82,22 @@ export function OnboardingView({
           </div>
           <p>
             {isHelpMode
-              ? "Copy Spark commands to your project for capturing knowledge."
-              : "Optional. Copy the Spark commands to capture knowledge from AI conversations."}
+              ? "Install Spark commands for capturing knowledge."
+              : "Optional. Install Spark commands to capture knowledge from AI conversations."}
           </p>
           <p className="step-hint">
-            <code>/spark</code> - Capture knowledge sparks
+            <code>/spark</code> - Capture knowledge
             <br />
-            <code>/respark</code> - Generate different perspectives
+            <code>/respark</code> - Different perspective
             <br />
-            <code>/deepspark</code> - Deep dive into a topic
+            <code>/deepspark</code> - Deep dive
           </p>
           <div className="step-actions">
             <button
               className="btn btn-secondary"
               onClick={() => onAction("copyCommands")}
             >
-              Copy Commands to Project
+              Install Commands
             </button>
           </div>
         </div>

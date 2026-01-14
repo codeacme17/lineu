@@ -49,10 +49,11 @@ export function DeckPanel({ cards, onCardClick }: DeckPanelProps) {
           {cards.length === 0 ? (
             <div className="empty">Catching new sparks...</div>
           ) : (
-            cards.map((card) => (
+            cards.map((card, index) => (
               <DeckCard
                 key={card.id}
                 card={card}
+                index={index}
                 onHover={setShowHint}
                 onClick={() => onCardClick?.(card)}
               />
@@ -66,11 +67,12 @@ export function DeckPanel({ cards, onCardClick }: DeckPanelProps) {
 
 interface DeckCardProps {
   card: Card;
+  index: number;
   onHover: (hovering: boolean) => void;
   onClick?: () => void;
 }
 
-function DeckCard({ card, onHover, onClick }: DeckCardProps) {
+function DeckCard({ card, index, onHover, onClick }: DeckCardProps) {
   const handleDragStart = useCallback(
     (e: React.DragEvent) => {
       e.dataTransfer.setData("text/plain", card.id);
@@ -81,6 +83,7 @@ function DeckCard({ card, onHover, onClick }: DeckCardProps) {
   return (
     <div
       className="deck-card"
+      style={{ animationDelay: `${index * 50}ms` }}
       draggable
       onDragStart={handleDragStart}
       onMouseEnter={() => onHover(true)}

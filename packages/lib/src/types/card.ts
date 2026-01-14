@@ -12,6 +12,8 @@ export type Card = {
   type?: CardType;
   title: string;
   summary: string;
+  /** Detailed explanation */
+  detail?: string;
   tags: string[];
   source: CardSource;
   codeRefs?: CodeRef[];

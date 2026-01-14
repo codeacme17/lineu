@@ -23,7 +23,7 @@ const mockDeck: Card[] = [
     id: "mock-deck-2",
     title: "Stream parsing insight",
     summary: "Buffered partial JSON chunks to avoid parse errors.",
-    tags: ["stream", "json"],
+    tags: ["stream"],
     source: "diff",
     createdAt: "2024-04-20T10:20:00Z",
     type: "knowledge",
@@ -32,7 +32,7 @@ const mockDeck: Card[] = [
     id: "mock-deck-3",
     title: "UI latency fix",
     summary: "Moved heavy work off the main thread and throttled updates.",
-    tags: ["ui", "perf"],
+    tags: ["perf"],
     source: "both",
     createdAt: "2024-04-20T10:30:00Z",
     type: "best_practice",
@@ -179,6 +179,22 @@ export default function App() {
     [postMessage]
   );
 
+  const handleDeleteTag = useCallback(
+    (id: string, tag: string) => {
+      setSavedCards((prev) =>
+        prev.map((card) => {
+          if (card.id === id) {
+            const newTags = card.tags.filter((t) => t !== tag);
+            postMessage({ type: "updateTags", id, tags: newTags });
+            return { ...card, tags: newTags };
+          }
+          return card;
+        })
+      );
+    },
+    [postMessage]
+  );
+
   const handleDrop = useCallback(
     (cardId: string) => {
       const cardIndex = deckCards.findIndex((c) => c.id === cardId);
@@ -263,6 +279,7 @@ export default function App() {
         onToggleEdit={handleToggleEdit}
         onDelete={handleDelete}
         onAddTag={handleAddTag}
+        onDeleteTag={handleDeleteTag}
         onDrop={handleDrop}
         onOpenSettings={handleOpenSettings}
         onCardClick={handleCardClick}

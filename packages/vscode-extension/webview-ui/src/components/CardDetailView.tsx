@@ -1,64 +1,27 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import type { Card } from "../types";
 
-// Generate prompt for respark/deepspark
-function generateSparkPrompt(card: Card, action: "respark" | "deepspark"): string {
-  const context = card.context || card.summary;
+// Generate prompt for deep/dislike actions
+function generateActionPrompt(card: Card, action: "deep" | "dislike"): string {
+  const context = card.context || "";
+  const cardInfo = `[Card: ${card.id}] "${card.title}" - ${card.summary}`;
   
-  if (action === "respark") {
-    return `Based on this knowledge card, please generate a DIFFERENT perspective or insight.
+  if (action === "dislike") {
+    return `/respark
 
-**Original Card:**
-- Title: ${card.title}
-- Summary: ${card.summary}
-- Type: ${card.type}
+${cardInfo}
 
-**Original Conversation Context:**
-${context}
-
----
-
-Please focus on:
-- Alternative approaches or solutions
-- Trade-offs that weren't highlighted
-- Related concepts that weren't the main focus
-- Potential gotchas or edge cases
-
-Then call capture_context MCP tool with:
-- action: "respark"
-- cardId: "${card.id}"
-- type: Choose appropriate type
-- seedText: Your new summary
-- rawConversation: Include this conversation
-- pushToExtension: true`;
+Context:
+${context}`;
   }
   
-  // deepspark
-  return `Please help me understand this topic more deeply.
+  // deep
+  return `/deepspark
 
-**Card to Deep Dive:**
-- Title: ${card.title}
-- Summary: ${card.summary}
-- Type: ${card.type}
+${cardInfo}
 
-**Original Conversation Context:**
-${context}
-
----
-
-Please explain:
-1. **Why** - The underlying reason or motivation
-2. **How** - The mechanism or implementation details
-3. **When** - Best use cases and when to avoid
-4. **What if** - Edge cases, limitations, or alternatives
-
-Then call capture_context MCP tool with:
-- action: "deepspark"
-- cardId: "${card.id}"
-- type: "knowledge"
-- seedText: A comprehensive summary of the deep dive
-- rawConversation: Include this conversation
-- pushToExtension: true`;
+Context:
+${context}`;
 }
 
 interface CardDetailViewProps {
@@ -81,7 +44,8 @@ export function CardDetailView({
   const [indicatorHover, setIndicatorHover] = useState(false);
   const [transitionDirection, setTransitionDirection] = useState<"next" | "prev" | null>(null);
   const [hoveredBookmark, setHoveredBookmark] = useState<{ id: string; top: number; title: string } | null>(null);
-  const [copiedAction, setCopiedAction] = useState<"respark" | "deepspark" | null>(null);
+  const [copiedAction, setCopiedAction] = useState<"deep" | "dislike" | null>(null);
+  const [titleHovered, setTitleHovered] = useState(false);
   const viewRef = useRef<HTMLDivElement>(null);
 
   // 合并所有卡片用于导航
@@ -135,13 +99,13 @@ export function CardDetailView({
     }, 300);
   }, [activeCardId, currentIndex, currentList, onDelete, onBack]);
 
-  // Copy prompt to clipboard for respark/deepspark
-  const handleCopyPrompt = useCallback(async (action: "respark" | "deepspark") => {
-    const prompt = generateSparkPrompt(activeCard, action);
+  // Copy prompt to clipboard for deep/dislike
+  const handleCopyPrompt = useCallback(async (action: "deep" | "dislike") => {
+    const prompt = generateActionPrompt(activeCard, action);
     try {
       await navigator.clipboard.writeText(prompt);
       setCopiedAction(action);
-      setTimeout(() => setCopiedAction(null), 2000);
+      setTimeout(() => setCopiedAction(null), 1500);
     } catch {
       // Fallback for older browsers
       const textarea = document.createElement("textarea");
@@ -151,7 +115,7 @@ export function CardDetailView({
       document.execCommand("copy");
       document.body.removeChild(textarea);
       setCopiedAction(action);
-      setTimeout(() => setCopiedAction(null), 2000);
+      setTimeout(() => setCopiedAction(null), 1500);
     }
   }, [activeCard]);
 
@@ -215,6 +179,14 @@ export function CardDetailView({
 
   return (
     <div className="card-detail-view" ref={viewRef}>
+      {/* 顶部 Toast 提示 */}
+      {copiedAction && (
+        <div className="toast-top">
+          <span className="toast-icon">✓</span>
+          <span>Copied! Paste to AI chat</span>
+        </div>
+      )}
+
       {/* 左侧书签导航 */}
       <aside className="bookmark-nav">
         <div className="bookmark-scroll-area">
@@ -269,35 +241,52 @@ export function CardDetailView({
       {/* 主内容区 */}
       <main className="card-detail-main">
         <article className={contentClass} key={activeCardId}>
-          <h1 className="card-detail-title">{activeCard.title}</h1>
+          <div 
+            className="card-detail-title-area"
+            onMouseEnter={() => setTitleHovered(true)}
+            onMouseLeave={() => setTitleHovered(false)}
+          >
+            <h1 className="card-detail-title">{activeCard.title}</h1>
+            
+            {/* Action icons - visible on hover */}
+            <div className={`title-actions ${titleHovered ? "visible" : ""}`}>
+              <button 
+                className="title-action-btn"
+                onClick={() => handleCopyPrompt("deep")} 
+                title="Deep dive"
+              >
+                {/* Magic wand icon */}
+                <svg className="icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M15 4V2M15 16v-2M8 9h2M20 9h2M17.8 11.8L19 13M17.8 6.2L19 5M3 21l9-9" />
+                  <path d="M12.2 6.2L11 5" />
+                  <path d="M14 12l-8 8" />
+                  <circle cx="15" cy="9" r="1" />
+                </svg>
+              </button>
+              <button 
+                className="title-action-btn dislike"
+                onClick={() => handleCopyPrompt("dislike")} 
+                title="Not this, try again"
+              >
+                <svg className="icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                  <path d="M3 3v5h5" />
+                </svg>
+              </button>
+            </div>
+          </div>
 
           <div className="card-detail-meta-inline">
             <span className="card-type-badge">{activeCard.type}</span>
             <span className="card-source">from {activeCard.source}</span>
             {isSaved && (
-              <>
-                <button 
-                  className={`spark-btn respark ${copiedAction === "respark" ? "copied" : ""}`}
-                  onClick={() => handleCopyPrompt("respark")} 
-                  title="Respark: Generate different perspective"
-                >
-                  {copiedAction === "respark" ? "Copied!" : "🔄 Respark"}
-                </button>
-                <button 
-                  className={`spark-btn deepspark ${copiedAction === "deepspark" ? "copied" : ""}`}
-                  onClick={() => handleCopyPrompt("deepspark")} 
-                  title="Deepspark: Deep dive into this topic"
-                >
-                  {copiedAction === "deepspark" ? "Copied!" : "🔍 Deepspark"}
-                </button>
-                <button className="delete-btn-inline" onClick={handleDelete} title="Delete">
-                  <svg className="icon" viewBox="0 0 24 24" aria-hidden="true">
-                    <path d="M3 6h18" />
-                    <path d="M8 6V4h8v2" />
-                    <path d="M6 6l1 14h10l1-14" />
-                  </svg>
-                </button>
-              </>
+              <button className="delete-btn-inline" onClick={handleDelete} title="Delete">
+                <svg className="icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M3 6h18" />
+                  <path d="M8 6V4h8v2" />
+                  <path d="M6 6l1 14h10l1-14" />
+                </svg>
+              </button>
             )}
           </div>
           
@@ -306,49 +295,32 @@ export function CardDetailView({
             <p>{activeCard.summary}</p>
           </section>
 
-          <section className="card-detail-section">
-            <h2>Details</h2>
-            <p className="card-detail-body">
-              This insight was captured during a coding session. It represents a 
-              {activeCard.type === "bug" ? " bug fix" : 
-               activeCard.type === "best_practice" ? " best practice" : 
-               " knowledge snippet"} 
-              that emerged from the conversation context.
-              <br /><br />
-              <strong>Context:</strong> The solution involved analyzing the {activeCard.source} 
-              to identify patterns and extract actionable insights. This card serves as a 
-              reference for similar scenarios in the future.
-              <br /><br />
-              <strong>Key Takeaways:</strong>
-              <ul>
-                <li>Consider edge cases when implementing similar solutions</li>
-                <li>Document the reasoning behind the approach</li>
-                <li>Test thoroughly before applying to production</li>
-              </ul>
-            </p>
-          </section>
+          {activeCard.detail && (
+            <section className="card-detail-section">
+              <h2>Details</h2>
+              <p className="card-detail-body">{activeCard.detail}</p>
+            </section>
+          )}
 
-          <section className="card-detail-section">
-            <h2>Tags</h2>
-            <div className="card-detail-tags">
-              {activeCard.tags.map((tag) => (
-                <span key={tag} className="card-detail-tag">{tag}</span>
-              ))}
-            </div>
-          </section>
+          {activeCard.tags && activeCard.tags.length > 0 && (
+            <section className="card-detail-section">
+              <h2>Tags</h2>
+              <div className="card-detail-tags">
+                {activeCard.tags.map((tag) => (
+                  <span key={tag} className="card-detail-tag">{tag}</span>
+                ))}
+              </div>
+            </section>
+          )}
 
-          <section className="card-detail-section">
-            <h2>Created</h2>
-            <p className="card-detail-date">
-              {new Date(activeCard.createdAt).toLocaleDateString("en-US", {
-                year: "numeric",
-                month: "long",
-                day: "numeric",
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
-            </p>
-          </section>
+          {/* 右下角时间戳 */}
+          <div className="card-detail-timestamp">
+            {new Date(activeCard.createdAt).toLocaleDateString("en-US", {
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+            })}
+          </div>
         </article>
       </main>
 

@@ -9,6 +9,7 @@ interface SavedPanelProps {
   onToggleEdit: () => void;
   onDelete: (id: string) => void;
   onAddTag: (id: string, tag: string) => void;
+  onDeleteTag: (id: string, tag: string) => void;
   onDrop: (cardId: string) => void;
   onOpenSettings: () => void;
   onCardClick?: (card: Card) => void;
@@ -22,6 +23,7 @@ export function SavedPanel({
   onToggleEdit,
   onDelete,
   onAddTag,
+  onDeleteTag,
   onDrop,
   onOpenSettings,
   onCardClick,
@@ -34,9 +36,9 @@ export function SavedPanel({
 
   // 收集所有标签
   const allTags = useMemo(() => {
-    const tags = new Set<string>();
-    cards.forEach((card) => card.tags.forEach((tag) => tags.add(tag)));
-    return ["all", ...Array.from(tags)];
+    const tagsSet = new Set<string>();
+    cards.forEach((card) => card.tags.forEach((t) => tagsSet.add(t)));
+    return ["all", ...Array.from(tagsSet)];
   }, [cards]);
 
   // 过滤卡片
@@ -109,6 +111,7 @@ export function SavedPanel({
             options={allTags}
             onChange={setActiveTag}
             formatLabel={(tag) => (tag === "all" ? "All" : tag)}
+            searchable
           />
           <SettingsButton onClick={onOpenSettings} />
         </div>
@@ -118,14 +121,16 @@ export function SavedPanel({
         {filteredCards.length === 0 ? (
           <div className="empty">No sparks yet.</div>
         ) : (
-          filteredCards.map((card) => (
+          filteredCards.map((card, index) => (
             <SavedCard
               key={card.id}
               card={card}
+              index={index}
               editMode={editMode}
               isDeleting={deletingId === card.id}
               onDelete={handleDelete}
               onAddTag={onAddTag}
+              onDeleteTag={onDeleteTag}
               onClick={() => onCardClick?.(card)}
             />
           ))
@@ -137,19 +142,23 @@ export function SavedPanel({
 
 interface SavedCardProps {
   card: Card;
+  index: number;
   editMode: boolean;
   isDeleting: boolean;
   onDelete: (id: string) => void;
   onAddTag: (id: string, tag: string) => void;
+  onDeleteTag: (id: string, tag: string) => void;
   onClick?: () => void;
 }
 
 function SavedCard({
   card,
+  index,
   editMode,
   isDeleting,
   onDelete,
   onAddTag,
+  onDeleteTag,
   onClick,
 }: SavedCardProps) {
   const [newTag, setNewTag] = useState("");
@@ -174,7 +183,10 @@ function SavedCard({
       className={`saved-card ${isDeleting ? "deleting" : ""}`}
       draggable={editMode}
       onClick={handleClick}
-      style={{ cursor: editMode ? "grab" : "pointer" }}
+      style={{ 
+        cursor: editMode ? "grab" : "pointer",
+        animationDelay: `${index * 50}ms`,
+      }}
     >
       <div className="saved-card-header">
         <div className="saved-card-title">{card.title}</div>
@@ -200,14 +212,26 @@ function SavedCard({
       <div className="saved-summary">{card.summary}</div>
       <div className="saved-tags">
         {card.tags.map((tag) => (
-          <span key={tag} className="saved-tag">
+          <span key={tag} className={`saved-tag ${editMode ? "editable" : ""}`}>
             {tag}
+            {editMode && (
+              <button
+                className="tag-delete"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDeleteTag(card.id, tag);
+                }}
+                title="Remove tag"
+              >
+                ×
+              </button>
+            )}
           </span>
         ))}
         {editMode && (
           <input
             className="tag-input"
-            placeholder="add tag..."
+            placeholder="+"
             value={newTag}
             onChange={(e) => setNewTag(e.target.value)}
             onKeyDown={handleKeyDown}

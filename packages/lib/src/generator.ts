@@ -433,7 +433,7 @@ function createCard(params: {
     type: params.type,
     title: params.title,
     summary: params.summary,
-    tags: params.tags.slice(0, 8),
+    tags: params.tags.slice(0, 2),
     source: params.source,
     codeRefs: params.codeRefs,
     createdAt: new Date().toISOString(),
