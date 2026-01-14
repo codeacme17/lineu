@@ -8,41 +8,57 @@ interface DeckPanelProps {
 
 export function DeckPanel({ cards, onCardClick }: DeckPanelProps) {
   const [showHint, setShowHint] = useState(false);
+  const [showInfo, setShowInfo] = useState(false);
 
   return (
     <section className="deck">
       <div className="deck-header">
         <div className="deck-title">
-          Incoming
-          <span className="notice-icon" title="Will refresh on next MCP call or Hook trigger">
+          Catching
+          <span 
+            className="notice-icon" 
+            onMouseEnter={() => setShowInfo(true)}
+            onMouseLeave={() => setShowInfo(false)}
+          >
             <svg className="icon" viewBox="0 0 24 24" aria-hidden="true">
               <circle cx="12" cy="12" r="10" />
               <path d="M12 16v-4" />
               <path d="M12 8h.01" />
             </svg>
-            <span className="notice-tooltip">
-              Will refresh on next MCP call or Hook trigger
-            </span>
           </span>
         </div>
         <div className={`deck-hint ${showHint ? "visible" : ""}`}>
-          Drag to save
+          Drag to keep
         </div>
       </div>
 
-      <div className="deck-hand">
-        {cards.length === 0 ? (
-          <div className="empty">No incoming cards yet.</div>
-        ) : (
-          cards.map((card) => (
-            <DeckCard
-              key={card.id}
-              card={card}
-              onHover={setShowHint}
-              onClick={() => onCardClick?.(card)}
-            />
-          ))
-        )}
+      <div className={`deck-hand-wrapper ${showInfo ? "show-info" : ""}`}>
+        {/* Info overlay - 浮层提示，只覆盖卡片区域 */}
+        <div 
+          className="deck-info-overlay"
+          onMouseEnter={() => setShowInfo(true)}
+          onMouseLeave={() => setShowInfo(false)}
+        >
+          <div className="deck-info-content">
+            <div className="deck-info-item">1. Auto-refresh on MCP/Hook</div>
+            <div className="deck-info-item">2. Drag to Sparks</div>
+          </div>
+        </div>
+
+        <div className="deck-hand">
+          {cards.length === 0 ? (
+            <div className="empty">Catching new sparks...</div>
+          ) : (
+            cards.map((card) => (
+              <DeckCard
+                key={card.id}
+                card={card}
+                onHover={setShowHint}
+                onClick={() => onCardClick?.(card)}
+              />
+            ))
+          )}
+        </div>
       </div>
     </section>
   );

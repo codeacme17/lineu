@@ -29,14 +29,16 @@ export function OnboardingView({
   }, [requiredDone, onAction, onBack]);
 
   return (
-    <div className="onboarding">
+    <div className={`onboarding ${isHelpMode ? "help-mode" : ""}`}>
       <div className="onboarding-header">
-        <button className="back-btn" onClick={onBack} title="Back">
-          <svg className="icon" viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M19 12H5" />
-            <path d="M12 19l-7-7 7-7" />
-          </svg>
-        </button>
+        {isHelpMode && (
+          <button className="back-btn" onClick={onBack} title="Back">
+            <svg className="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M19 12H5" />
+              <path d="M12 19l-7-7 7-7" />
+            </svg>
+          </button>
+        )}
         <h1 className="onboarding-title">
           {isHelpMode ? "Help" : "Welcome to Lineu"}
         </h1>

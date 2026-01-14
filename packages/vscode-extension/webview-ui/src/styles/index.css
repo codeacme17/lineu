@@ -24,8 +24,15 @@
   box-sizing: border-box;
 }
 
-body {
+html, body {
   margin: 0;
+  padding: 0;
+  overflow: hidden;
+  width: 100%;
+  height: 100%;
+}
+
+body {
   font-family: "Patrick Hand", "Caveat", cursive, system-ui;
   background: 
     /* 细微网格纹理 */
@@ -47,6 +54,12 @@ body {
   color: var(--text);
   -webkit-font-smoothing: antialiased;
   letter-spacing: 0.02em;
+}
+
+#root {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
 }
 
 .frame {
@@ -391,9 +404,12 @@ body {
   border-radius: 10px;
   padding: 10px 12px;
   flex: 0 0 auto;
-  min-height: 100px;
+  min-height: 120px;
+  max-height: 280px;
   display: flex;
   flex-direction: column;
+  position: relative;
+  overflow: hidden;
 }
 
 .deck-header {
@@ -426,6 +442,50 @@ body {
 
 .deck-hint.visible {
   opacity: 1;
+}
+
+/* Info overlay - 浮层提示，类似 drop-ready */
+.deck-info-overlay {
+  position: absolute;
+  inset: 0;
+  border: 2px dashed var(--accent);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent);
+  background: rgba(26, 25, 22, 0.92);
+  z-index: 10;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.deck-hand-wrapper.show-info .deck-info-overlay {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.deck-info-content {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 12px;
+}
+
+.deck-info-item {
+  font-family: "Patrick Hand", cursive;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.deck-hand-wrapper {
+  position: relative;
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .deck-hand {
@@ -485,7 +545,7 @@ body {
 
 /* Drop zone 手绘风格 */
 .drop-ready::after {
-  content: "✧ Drop to save ✧";
+  content: "✧ Drop to keep ✧";
   position: absolute;
   inset: 12px;
   border: 2px dashed var(--accent);
@@ -791,17 +851,32 @@ body {
   gap: 8px;
 }
 
+/* Help 模式下简化 footer */
+.onboarding.help-mode .onboarding-footer {
+  margin-top: auto;
+  padding-top: 8px;
+  border-top: none;
+}
+
 /* ========== Card Detail View ========== */
 .card-detail-view {
   display: flex;
+  width: 100vw;
   height: 100vh;
-  overflow: visible;
+  overflow: hidden;
+  margin: 0;
+  padding: 0;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
 }
 
 /* 书签导航 */
 .bookmark-nav {
-  width: 24px;
-  min-width: 24px;
+  width: 20px;
+  min-width: 20px;
   background: var(--bg);
   border-right: 1px solid var(--border);
   display: flex;
@@ -809,6 +884,8 @@ body {
   position: relative;
   overflow: visible;
   z-index: 50;
+  margin: 0;
+  padding: 0;
 }
 
 /* 书签滚动区域 */
@@ -816,6 +893,7 @@ body {
   flex: 1;
   display: flex;
   flex-direction: column;
+  align-items: stretch;
   padding: 8px 0 32px 0; /* 底部留空间给退出按钮 */
   overflow-y: auto;
   overflow-x: visible;
@@ -838,12 +916,13 @@ body {
   display: flex;
   align-items: center;
   scroll-snap-align: center;
-  width: 20px;
+  width: 100%;
   background: var(--bg);
-  border-radius: 0 6px 6px 0;
-  border: 1px solid transparent;
+  border-radius: 0 4px 4px 0;
+  border: none;
   border-left: 3px solid var(--border-sketch);
-  padding: 0 4px;
+  padding: 0 2px;
+  margin: 0;
   transition: all 0.2s ease;
   overflow: hidden;
   z-index: 1;
@@ -936,8 +1015,7 @@ body {
 .exit-btn {
   position: absolute;
   bottom: 6px;
-  left: 50%;
-  transform: translateX(-50%);
+  left: 2px;
   width: 16px;
   height: 16px;
   display: flex;
@@ -969,6 +1047,7 @@ body {
 /* 主内容区 */
 .card-detail-main {
   flex: 1;
+  min-width: 0; /* 防止 flex 子元素撑开 */
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -983,10 +1062,13 @@ body {
 
 .card-detail-content {
   flex: 1;
+  overflow-x: hidden;
   overflow-y: auto;
   padding: 16px;
   padding-bottom: 80px; /* 为浮动控件留空间 */
   animation: slideIn 0.25s ease-out;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 /* 切换动画 */
@@ -1038,6 +1120,8 @@ body {
   color: var(--text-warm);
   margin: 0 0 8px;
   line-height: 1.2;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .card-detail-meta-inline {
@@ -1087,7 +1171,7 @@ body {
 .home-indicator {
   position: absolute;
   bottom: 0;
-  left: 24px; /* 避开左侧书签栏 */
+  left: 20px; /* 避开左侧书签栏 */
   right: 0;
   display: flex;
   flex-direction: column;
@@ -1353,17 +1437,25 @@ body {
   white-space: nowrap;
   font-family: "Patrick Hand", cursive;
   font-size: 11px;
-  color: var(--text-warm);
-  background: var(--bg-paper);
-  border: 1px dashed var(--border-sketch);
-  border-radius: 6px;
-  padding: 4px 10px;
+  color: #000;
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  border-radius: 4px;
+  padding: 4px 8px;
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.2s ease;
   z-index: 50;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 .notice-icon:hover .notice-tooltip {
   opacity: 1;
+}
+
+/* Light mode: 黑底白字 tooltip */
+.light-mode .notice-tooltip {
+  color: #fff;
+  background: #222;
+  border-color: rgba(255, 255, 255, 0.1);
 }

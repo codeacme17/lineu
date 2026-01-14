@@ -96,6 +96,18 @@ export function CardDetailView({
     return () => view.removeEventListener("wheel", handleScroll);
   }, [handleNext, handlePrev]);
 
+  // ESC 键返回列表页
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onBack();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onBack]);
+
   // 点击书签切换
   const handleBookmarkClick = useCallback((cardId: string) => {
     if (cardId === activeCardId) return;

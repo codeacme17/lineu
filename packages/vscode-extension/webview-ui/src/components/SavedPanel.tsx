@@ -81,7 +81,7 @@ export function SavedPanel({
       onDrop={handleDrop}
     >
       <div className="panel-header">
-        <div className="panel-title">Saved Stack</div>
+        <div className="panel-title">Sparks</div>
         <div className="panel-actions">
           <button
             className={`btn btn-secondary ${editMode ? "active" : ""}`}
@@ -105,7 +105,7 @@ export function SavedPanel({
 
       <div className={`saved-list ${editMode ? "editing" : ""}`}>
         {filteredCards.length === 0 ? (
-          <div className="empty">No saved cards yet.</div>
+          <div className="empty">No sparks yet.</div>
         ) : (
           filteredCards.map((card) => (
             <SavedCard
