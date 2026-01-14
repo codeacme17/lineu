@@ -36,10 +36,6 @@ const InputSchema = {
       "Full conversation history for context. Stored but not displayed. " +
         "Used for respark/deepspark features. Include the complete dialogue."
     ),
-  pushToExtension: z
-    .boolean()
-    .optional()
-    .describe("If true, write cards to inbox for extension to pick up."),
 };
 
 const OutputSchema = {
@@ -93,10 +89,7 @@ export function registerCaptureContext(server: McpServer): void {
 
       // Write to inbox (replaces existing inbox content)
       const inboxPath = getInboxPath(projectName);
-
-      if (args?.pushToExtension) {
-        await writeCardsFile(inboxPath, cards);
-      }
+      await writeCardsFile(inboxPath, cards);
 
       const statusMessage = `Generated card "${title}" for project "${projectName}".`;
 

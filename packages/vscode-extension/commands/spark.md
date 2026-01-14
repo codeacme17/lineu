@@ -7,9 +7,7 @@ You MUST include ALL of these parameters:
 - detail: Detailed explanation with context and examples
 - tags: 1-2 tags for categorization (MAXIMUM 2 tags!)
 - rawConversation: COMPLETE conversation history "User: ...\nAssistant: ..."
-- pushToExtension: true ← REQUIRED
 
 IMPORTANT: 
 - Call this tool exactly ONCE
-- pushToExtension MUST be true for the card to appear
 - tags: MAXIMUM 2 tags only!

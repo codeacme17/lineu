@@ -7,11 +7,11 @@ Focus on:
 - Edge cases or gotchas
 
 Then call capture_context MCP tool ONCE with ALL these parameters:
-- action: "respark"
-- cardId: [the card ID from context]
-- type: appropriate type
-- seedText: fresh summary with new angle
-- rawConversation: COMPLETE conversation history in format "User: ...\nAssistant: ..."
-- pushToExtension: true  ← REQUIRED, must be true
+- type: appropriate type ("bug" | "best_practice" | "knowledge")
+- title: Short title with NEW angle (5-10 words)
+- summary: Fresh summary highlighting different aspect (1-2 sentences)
+- detail: Detailed explanation of the alternative perspective
+- tags: 1-2 tags (MAXIMUM 2!)
+- rawConversation: COMPLETE conversation history "User: ...\nAssistant: ..."
 
-IMPORTANT: Call exactly ONCE. pushToExtension MUST be true.
+IMPORTANT: Call exactly ONCE. Maximum 2 tags!

@@ -8,37 +8,6 @@ import { useVSCode } from "./hooks/useVSCode";
 import type { Card, WebviewMode, WebviewInitialData, OnboardingState } from "./types";
 import "./styles/index.css";
 
-// Mock 数据，用于开发时在浏览器中预览
-const mockDeck: Card[] = [
-  {
-    id: "mock-deck-1",
-    title: "Auth token refresh bug",
-    summary: "Resolved token refresh race by serializing refresh calls.",
-    tags: ["auth", "bug"],
-    source: "context",
-    createdAt: "2024-04-20T10:12:00Z",
-    type: "bug",
-  },
-  {
-    id: "mock-deck-2",
-    title: "Stream parsing insight",
-    summary: "Buffered partial JSON chunks to avoid parse errors.",
-    tags: ["stream"],
-    source: "diff",
-    createdAt: "2024-04-20T10:20:00Z",
-    type: "knowledge",
-  },
-  {
-    id: "mock-deck-3",
-    title: "UI latency fix",
-    summary: "Moved heavy work off the main thread and throttled updates.",
-    tags: ["perf"],
-    source: "both",
-    createdAt: "2024-04-20T10:30:00Z",
-    type: "best_practice",
-  },
-];
-
 // 从 window 对象获取初始数据（由扩展注入）
 declare global {
   interface Window {
@@ -81,8 +50,7 @@ export default function App() {
           setSavedCards(cards);
           setDeckCards([]);
         } else {
-          // 如果没有真实卡片，使用 mock 数据
-          setDeckCards(cards.length > 0 ? cards : mockDeck);
+          setDeckCards(cards);
           setSavedCards([]);
         }
         if (obState) {
@@ -117,8 +85,7 @@ export default function App() {
       if (initialData.mode === "collection") {
         setSavedCards(initialData.cards);
       } else {
-        // 如果没有真实卡片，使用 mock 数据
-        setDeckCards(initialData.cards.length > 0 ? initialData.cards : mockDeck);
+        setDeckCards(initialData.cards);
       }
       if (initialData.onboardingState) {
         setOnboardingState(initialData.onboardingState);
@@ -133,10 +100,8 @@ export default function App() {
         setProjects(initialData.projects);
       }
     } else {
-      // 浏览器开发模式或无初始数据，使用 mock 数据
-      setDeckCards(mockDeck);
-      setCurrentProject("demo-project");
-      setProjects(["demo-project", "other-project"]);
+      // 浏览器开发模式或无初始数据
+      setDeckCards([]);
     }
 
     postMessage({ type: "ready" });
