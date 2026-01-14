@@ -1,9 +1,8 @@
 import { useCallback } from "react";
 
 interface OnboardingState {
-  apiKeyConfigured: boolean;
   mcpConfigured: boolean;
-  hooksConfigured: boolean;
+  commandsConfigured: boolean;
 }
 
 interface OnboardingViewProps {
@@ -19,7 +18,7 @@ export function OnboardingView({
   onBack,
   isHelpMode = false,
 }: OnboardingViewProps) {
-  const requiredDone = state.apiKeyConfigured && state.mcpConfigured;
+  const requiredDone = state.mcpConfigured;
 
   const handleFinish = useCallback(() => {
     if (requiredDone) {
@@ -47,31 +46,7 @@ export function OnboardingView({
       <div className="onboarding-steps">
         <div className="step">
           <div className="step-header">
-            <h2>Step 1: Configure OpenRouter API Key</h2>
-            {!isHelpMode && (
-              <span className={`status ${state.apiKeyConfigured ? "done" : ""}`}>
-                {state.apiKeyConfigured ? "✓" : "Required"}
-              </span>
-            )}
-          </div>
-          <p>
-            {isHelpMode
-              ? "Set your OpenRouter API key for generating cards."
-              : "Required. This key is needed for generating cards via OpenRouter."}
-          </p>
-          <div className="step-actions">
-            <button
-              className="btn btn-secondary"
-              onClick={() => onAction("configureOpenRouter")}
-            >
-              Set API Key
-            </button>
-          </div>
-        </div>
-
-        <div className="step">
-          <div className="step-header">
-            <h2>Step 2: Configure MCP</h2>
+            <h2>Step 1: Configure MCP</h2>
             {!isHelpMode && (
               <span className={`status ${state.mcpConfigured ? "done" : ""}`}>
                 {state.mcpConfigured ? "✓" : "Required"}
@@ -109,35 +84,31 @@ export function OnboardingView({
 
         <div className="step">
           <div className="step-header">
-            <h2>Step 3: Configure Hooks</h2>
+            <h2>Step 2: Set Up Commands</h2>
             {!isHelpMode && (
-              <span className={`status optional ${state.hooksConfigured ? "done" : ""}`}>
-                {state.hooksConfigured ? "✓" : "Optional"}
+              <span className={`status optional ${state.commandsConfigured ? "done" : ""}`}>
+                {state.commandsConfigured ? "✓" : "Optional"}
               </span>
             )}
           </div>
           <p>
             {isHelpMode
-              ? "Set up hooks for auto-capture after AI conversations."
-              : "Optional. Create hooks config for auto-capture after AI conversations."}
+              ? "Copy Spark commands to your project for capturing knowledge."
+              : "Optional. Copy the Spark commands to capture knowledge from AI conversations."}
           </p>
           <p className="step-hint">
-            Cursor: <code>~/.cursor/hooks.json</code>
+            <code>/spark</code> - Capture knowledge sparks
             <br />
-            Claude Code: <code>~/.claude/settings.json</code>
+            <code>/respark</code> - Generate different perspectives
+            <br />
+            <code>/deepspark</code> - Deep dive into a topic
           </p>
           <div className="step-actions">
             <button
               className="btn btn-secondary"
-              onClick={() => onAction("createHooksConfig")}
+              onClick={() => onAction("copyCommands")}
             >
-              Create Hooks Config
-            </button>
-            <button
-              className="btn btn-secondary"
-              onClick={() => onAction("copyHooksConfig")}
-            >
-              Copy Config
+              Copy Commands to Project
             </button>
           </div>
         </div>
@@ -155,7 +126,7 @@ export function OnboardingView({
               onClick={handleFinish}
               disabled={!requiredDone}
             >
-              {requiredDone ? "✓ Complete Setup" : "Complete Steps 1 & 2"}
+              {requiredDone ? "✓ Complete Setup" : "Complete Step 1"}
             </button>
             <button className="btn btn-secondary" onClick={onBack}>
               Skip for Now

@@ -96,6 +96,20 @@ export class CardsStore {
     return true;
   }
 
+  /** Replace an existing card with a new one (for respark/deepspark) */
+  async replaceCard(cardId: string, newCard: Card): Promise<boolean> {
+    const existing = await this.readCards();
+    const index = existing.findIndex((c) => c.id === cardId);
+    if (index === -1) {
+      return false;
+    }
+    const sanitized = sanitizeCard(newCard);
+    sanitized.project = this.projectName;
+    existing[index] = sanitized;
+    await this.writeCards(existing);
+    return true;
+  }
+
   private async writeCards(cards: Card[]): Promise<void> {
     const filePath = this.getProjectStoragePath();
     await fs.mkdir(path.dirname(filePath), { recursive: true });

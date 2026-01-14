@@ -18,4 +18,6 @@ export type Card = {
   createdAt: string;
   /** Project name (workspace folder name) */
   project?: string;
+  /** Original conversation context for respark/deepspark */
+  context?: string;
 };

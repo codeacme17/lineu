@@ -101,59 +101,30 @@ For local development, configure your MCP client (Cursor, Claude Desktop):
 - Cursor: `~/.cursor/mcp.json`
 - Claude Desktop: `claude_desktop_config.json`
 
-## Hooks Configuration (Auto Knowledge Capture)
+## Spark Commands (Knowledge Capture)
 
-This project includes a hook that automatically triggers the knowledge capture UI when an AI assistant completes a task.
+This project uses Cursor Custom Commands for on-demand knowledge capture.
+
+### Available Commands
+
+| Command | Description |
+|---------|-------------|
+| `/spark` | ✨ Capture knowledge sparks from the conversation |
+| `/respark` | 🔄 Generate different perspectives from the same context |
+| `/deepspark` | 🔍 Deep dive into a topic |
+
+### Setup
+
+Copy the Spark commands to your project:
+1. Use the extension command: `Lineu: Copy Spark Commands to Project`
+2. Or manually copy from `.cursor/commands/` in this repo
 
 ### How It Works
 
-1. AI assistant completes a task → `stop` hook triggers
-2. Hook directly opens `cursor://lineu.lineu/capture?file=...` URI
-3. Extension shows capture dialog → user can save knowledge card
-
-**No AI involvement required** - the hook triggers the extension directly.
-
-### Project-Level Configuration (Already Included)
-
-**Cursor** (`.cursor/hooks.json`):
-```json
-{
-  "version": 1,
-  "hooks": {
-    "stop": [{ "command": "python3 ./hooks/lineu-capture.py" }]
-  }
-}
-```
-
-**Claude Code** (`.claude/settings.json`):
-```json
-{
-  "hooks": {
-    "Stop": [{ "matcher": ".*", "hooks": [{ "type": "command", "command": "python3 \"$CLAUDE_PROJECT_DIR/hooks/lineu-capture.py\"" }] }]
-  }
-}
-```
-
-### User-Level Configuration (For All Projects)
-
-**Cursor** (`~/.cursor/hooks.json`):
-```json
-{
-  "version": 1,
-  "hooks": {
-    "stop": [{ "command": "python3 /path/to/lineu/hooks/lineu-capture.py" }]
-  }
-}
-```
-
-**Claude Code** (`~/.claude/settings.json`):
-```json
-{
-  "hooks": {
-    "Stop": [{ "matcher": ".*", "hooks": [{ "type": "command", "command": "python3 /path/to/lineu/hooks/lineu-capture.py" }] }]
-  }
-}
-```
+1. Have a conversation with AI
+2. Type `/spark` to capture knowledge
+3. AI calls `capture_context` MCP tool
+4. Card appears in Lineu sidebar
 
 ## Notes
 

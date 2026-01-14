@@ -5,7 +5,16 @@ import { detectEditor } from "../utils.js";
 
 const CardTypeSchema = z.enum(["bug", "best_practice", "knowledge"]);
 
+const ActionSchema = z.enum(["create", "respark", "deepspark"]);
+
 const InputSchema = {
+  action: ActionSchema.optional().describe(
+    "Action type: create (new card), respark (regenerate with different angle), deepspark (deep dive replacement)."
+  ),
+  cardId: z
+    .string()
+    .optional()
+    .describe("Card ID to replace. Required for respark/deepspark actions."),
   type: CardTypeSchema.optional().describe(
     "Card type: bug (problem fix), best_practice (code best practices), knowledge (technical concepts)."
   ),
@@ -13,6 +22,13 @@ const InputSchema = {
     .string()
     .optional()
     .describe("Conversation context or summary from the AI session."),
+  rawConversation: z
+    .string()
+    .optional()
+    .describe(
+      "Full conversation history for context. Stored but not displayed. " +
+      "Used for respark/deepspark features. Include the complete dialogue."
+    ),
   diff: z.string().optional().describe("Git diff content if available."),
   selection: z
     .string()
@@ -78,9 +94,13 @@ export function registerCaptureContext(server: McpServer): void {
         | undefined;
 
       if (args?.pushToExtension) {
+        const action = args?.action as "create" | "respark" | "deepspark" | undefined;
         const result = await pushToVSCode(
           {
+            action: action ?? "create",
+            cardId: args.cardId,
             conversationText,
+            rawConversation: args.rawConversation,
             diff: args.diff,
             selection: args.selection,
             metadata,

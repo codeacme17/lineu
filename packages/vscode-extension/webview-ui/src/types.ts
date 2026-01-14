@@ -8,15 +8,16 @@ export interface Card {
   createdAt: string;
   type: "bug" | "best_practice" | "knowledge";
   project?: string;
+  /** Original conversation context for respark/deepspark (not displayed) */
+  context?: string;
 }
 
 export type WebviewMode = "deal" | "collection";
 
 // Onboarding 状态
 export interface OnboardingState {
-  apiKeyConfigured: boolean;
   mcpConfigured: boolean;
-  hooksConfigured: boolean;
+  commandsConfigured: boolean;
 }
 
 // VSCode 发送给 Webview 的初始数据

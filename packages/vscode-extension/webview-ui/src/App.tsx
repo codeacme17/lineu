@@ -61,9 +61,8 @@ export default function App() {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [isHelpMode, setIsHelpMode] = useState(false); // true = 从设置进入
   const [onboardingState, setOnboardingState] = useState<OnboardingState>({
-    apiKeyConfigured: false,
     mcpConfigured: false,
-    hooksConfigured: false,
+    commandsConfigured: false,
   });
 
   // 卡片详细页状态

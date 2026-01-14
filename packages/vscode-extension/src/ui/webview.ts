@@ -4,9 +4,8 @@ import type { Card } from "@lineu/lib";
 type WebviewMode = "deal" | "collection";
 
 interface OnboardingState {
-  apiKeyConfigured: boolean;
   mcpConfigured: boolean;
-  hooksConfigured: boolean;
+  commandsConfigured: boolean;
 }
 
 export class CardsViewProvider implements vscode.WebviewViewProvider {
@@ -16,9 +15,8 @@ export class CardsViewProvider implements vscode.WebviewViewProvider {
   private onFavorite?: (card: Card) => Promise<void>;
   private onOnboardingAction?: (action: string) => Promise<void>;
   private onboardingState: OnboardingState = {
-    apiKeyConfigured: false,
     mcpConfigured: false,
-    hooksConfigured: false,
+    commandsConfigured: false,
   };
   private showOnboarding = false;
   private currentProject = "";

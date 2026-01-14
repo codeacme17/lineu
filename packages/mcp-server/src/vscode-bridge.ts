@@ -20,7 +20,13 @@ const EDITOR_SCHEMES: Record<EditorType, string> = {
  * Context payload to send to VSCode extension.
  */
 export interface VSCodeContext {
+  /** Action type: create new card, or replace existing with respark/deepspark */
+  action?: "create" | "respark" | "deepspark";
+  /** Card ID to replace (for respark/deepspark) */
+  cardId?: string;
   conversationText: string;
+  /** Full conversation history for respark/deepspark. Stored but not displayed. */
+  rawConversation?: string;
   diff?: string;
   selection?: string;
   metadata?: Record<string, unknown>;

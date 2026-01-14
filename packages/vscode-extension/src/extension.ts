@@ -13,9 +13,8 @@ import { CardsViewProvider } from "./ui/webview.js";
 const execAsync = promisify(exec);
 let cardsViewProvider: CardsViewProvider | null = null;
 const ONBOARDING_COMPLETED_KEY = "cards.onboardingCompleted";
-const ONBOARDING_API_KEY = "cards.onboarding.apiKeyConfigured";
 const ONBOARDING_MCP_KEY = "cards.onboarding.mcpConfigured";
-const ONBOARDING_HOOKS_KEY = "cards.onboarding.hooksConfigured";
+const ONBOARDING_COMMANDS_KEY = "cards.onboarding.commandsConfigured";
 
 export function activate(context: vscode.ExtensionContext) {
   // Register URI handler for MCP server to push context
@@ -97,31 +96,6 @@ export function activate(context: vscode.ExtensionContext) {
       } catch (error) {
         vscode.window.showErrorMessage(
           `Failed to open collection: ${formatError(error)}`
-        );
-      }
-    }
-  );
-
-  const configureOpenRouter = vscode.commands.registerCommand(
-    "cards.configureOpenRouterApiKey",
-    async () => {
-      try {
-        const apiKey = await vscode.window.showInputBox({
-          prompt: "Enter your OpenRouter API key.",
-          password: true,
-          ignoreFocusOut: true,
-          placeHolder: "sk-or-...",
-        });
-
-        if (!apiKey) {
-          return;
-        }
-
-        await context.secrets.store("cards.openRouterApiKey", apiKey.trim());
-        vscode.window.showInformationMessage("OpenRouter API key saved.");
-      } catch (error) {
-        vscode.window.showErrorMessage(
-          `Failed to store OpenRouter API key: ${formatError(error)}`
         );
       }
     }
@@ -234,89 +208,67 @@ export function activate(context: vscode.ExtensionContext) {
     }
   );
 
-  const copyHooksConfig = vscode.commands.registerCommand(
-    "cards.copyHooksConfig",
+  const copySparkCommands = vscode.commands.registerCommand(
+    "cards.copySparkCommands",
     async () => {
-      const hookPath = getHookScriptPath(context.extensionPath);
-      if (!hookPath) {
-        vscode.window.showErrorMessage(
-          "Hook script not found. Reinstall the extension."
-        );
-        return;
-      }
+      const workspaceRoot = getWorkspaceRoot();
 
-      const target = await vscode.window.showQuickPick(
+      // Choose scope: global or project
+      const scope = await vscode.window.showQuickPick(
         [
-          { label: "Cursor", id: "cursor" },
-          { label: "Claude Code", id: "claude-code" },
-        ],
-        {
-          placeHolder: "Select where to use the hooks config",
-        }
+          { 
+            label: "Global (all projects)", 
+            id: "global", 
+            description: "~/.cursor/commands/ or ~/.claude/commands/" 
+          },
+          { 
+            label: "Current project only", 
+            id: "project", 
+            description: ".cursor/commands/ or .claude/commands/",
+            disabled: !workspaceRoot
+          },
+        ].filter(item => !item.disabled),
+        { placeHolder: "Where to install Spark commands?" }
       );
 
-      if (!target) {
+      if (!scope) {
         return;
       }
 
-      const config = buildHooksConfigSnippet(target.id, hookPath);
-      await vscode.env.clipboard.writeText(config);
-      await context.globalState.update(ONBOARDING_HOOKS_KEY, true);
-      vscode.window.showInformationMessage(
-        `Hooks config copied for ${target.label}.`
-      );
-    }
-  );
-
-  const createHooksConfig = vscode.commands.registerCommand(
-    "cards.createHooksConfig",
-    async () => {
-      const hookPath = getHookScriptPath(context.extensionPath);
-      if (!hookPath) {
-        vscode.window.showErrorMessage(
-          "Hook script not found. Reinstall the extension."
-        );
-        return;
-      }
-
-      const target = await vscode.window.showQuickPick(
+      const platform = await vscode.window.showQuickPick(
         [
-          { label: "Cursor", id: "cursor" },
-          { label: "Claude Code", id: "claude-code" },
+          { label: "Cursor", id: "cursor", description: ".cursor/commands/" },
+          { label: "Claude Code", id: "claude", description: ".claude/commands/" },
+          { label: "Both", id: "both", description: "Copy to both platforms" },
         ],
-        {
-          placeHolder: "Select where to create the hooks config file",
-        }
+        { placeHolder: "Select AI platform" }
       );
 
-      if (!target) {
-        return;
-      }
-
-      const configPath = resolveHooksConfigPath(target.id);
-      if (!configPath) {
-        vscode.window.showErrorMessage("Unsupported platform for hooks config.");
-        return;
-      }
-
-      const confirmedPath = await promptForConfigPath(
-        "Hooks config file path",
-        configPath
-      );
-      if (!confirmedPath) {
+      if (!platform) {
         return;
       }
 
       try {
-        await upsertHooksConfig(confirmedPath, hookPath);
-        await context.globalState.update(ONBOARDING_HOOKS_KEY, true);
-        vscode.window.showInformationMessage(
-          `Hooks config written to ${confirmedPath}.`
+        const targetRoot = scope.id === "global" ? os.homedir() : workspaceRoot!;
+        await copySparkCommandsToWorkspace(
+          context.extensionPath,
+          targetRoot,
+          platform.id as "cursor" | "claude" | "both"
         );
-        await openConfigFile(confirmedPath);
+        await context.globalState.update(ONBOARDING_COMMANDS_KEY, true);
+        
+        const scopeDesc = scope.id === "global" ? "globally" : "to project";
+        const platformDesc = platform.id === "both" 
+          ? "Cursor & Claude"
+          : platform.id === "cursor" 
+            ? "Cursor" 
+            : "Claude Code";
+        vscode.window.showInformationMessage(
+          `Spark commands installed ${scopeDesc} for ${platformDesc}`
+        );
       } catch (error) {
         vscode.window.showErrorMessage(
-          `Failed to write hooks config: ${formatError(error)}`
+          `Failed to copy Spark commands: ${formatError(error)}`
         );
       }
     }
@@ -345,12 +297,10 @@ export function activate(context: vscode.ExtensionContext) {
     uriHandler,
     captureCommand,
     openCollection,
-    configureOpenRouter,
     copyMcpServerPath,
     copyMcpConfig,
     createMcpConfig,
-    copyHooksConfig,
-    createHooksConfig,
+    copySparkCommands,
     showOnboarding,
     cardsViewRegistration
   );
@@ -381,47 +331,94 @@ async function handleIncomingContext(
     // Read context from temp file
     const content = await readFile(filePath, "utf-8");
     const incomingContext = JSON.parse(content) as {
+      action?: "create" | "respark" | "deepspark";
+      cardId?: string;
       conversationText?: string;
+      rawConversation?: string;
       diff?: string;
       selection?: string;
       metadata?: Record<string, unknown>;
       type?: "bug" | "best_practice" | "knowledge";
     };
 
-    // Generate cards from incoming context
-    const cards = generateCards({
-      contextText: incomingContext.conversationText || "",
-      diffText: incomingContext.diff || "",
-      selectionText: incomingContext.selection || "",
-      type: incomingContext.type,
-    });
-
-    if (cards.length === 0) {
-      vscode.window.showInformationMessage("No cards generated from context.");
-      return;
-    }
-
-    // Show cards in webview
     const store = new CardsStore(workspaceRoot);
-    const projects = await store.getProjects();
-    showCardsWebview({
-      cards,
-      mode: "deal",
-      currentProject: store.getProjectName(),
-      projects,
-      onFavorite: async (card) => {
-        const result = await store.addCards([card]);
-        if (result.added.length > 0) {
-          vscode.window.showInformationMessage("Card saved.");
-        } else {
-          vscode.window.showInformationMessage("Card already saved.");
-        }
-      },
-    });
+    const action = incomingContext.action ?? "create";
 
-    vscode.window.showInformationMessage(
-      `Received ${cards.length} card(s) from vibe-coding session.`
-    );
+    // Handle respark/deepspark: replace existing card
+    if ((action === "respark" || action === "deepspark") && incomingContext.cardId) {
+      const cards = generateCards({
+        contextText: incomingContext.conversationText || "",
+        diffText: incomingContext.diff || "",
+        selectionText: incomingContext.selection || "",
+        type: incomingContext.type,
+      });
+
+      if (cards.length > 0) {
+        const newCard = cards[0];
+        // Preserve the original card ID for replacement
+        newCard.id = incomingContext.cardId;
+        // Attach raw conversation
+        if (incomingContext.rawConversation) {
+          newCard.context = incomingContext.rawConversation;
+        }
+        
+        await store.replaceCard(incomingContext.cardId, newCard);
+        
+        // Refresh the webview with updated cards
+        const allCards = await store.readCards();
+        const projects = await store.getProjects();
+        showCardsWebview({
+          cards: allCards,
+          mode: "collection",
+          currentProject: store.getProjectName(),
+          projects,
+        });
+        
+        const actionLabel = action === "respark" ? "Resparked" : "Deep dived";
+        vscode.window.showInformationMessage(`${actionLabel} card updated.`);
+      }
+    } else {
+      // Normal create flow
+      const cards = generateCards({
+        contextText: incomingContext.conversationText || "",
+        diffText: incomingContext.diff || "",
+        selectionText: incomingContext.selection || "",
+        type: incomingContext.type,
+      });
+
+      // Attach raw conversation to cards for respark/deepspark
+      if (incomingContext.rawConversation) {
+        for (const card of cards) {
+          card.context = incomingContext.rawConversation;
+        }
+      }
+
+      if (cards.length === 0) {
+        vscode.window.showInformationMessage("No cards generated from context.");
+        return;
+      }
+
+      // Show cards in webview
+      const projects = await store.getProjects();
+      showCardsWebview({
+        cards,
+        mode: "deal",
+        currentProject: store.getProjectName(),
+        projects,
+        onFavorite: async (card) => {
+          const result = await store.addCards([card]);
+          if (result.added.length > 0) {
+            vscode.window.showInformationMessage("Card saved.");
+          } else {
+            vscode.window.showInformationMessage("Card already saved.");
+          }
+        },
+      });
+
+      vscode.window.showInformationMessage(
+        `Received ${cards.length} card(s) from vibe-coding session.`
+      );
+    }
 
     // Cleanup temp file
     try {
@@ -504,7 +501,7 @@ function getEmbeddedMcpServerPath(extensionPath: string): string | null {
 function buildMcpConfigSnippet(serverPath: string): string {
   const snippet = {
     mcpServers: {
-      "lineu-cards": {
+      "lineu": {
         command: "node",
         args: [serverPath],
       },
@@ -513,50 +510,48 @@ function buildMcpConfigSnippet(serverPath: string): string {
   return JSON.stringify(snippet, null, 2);
 }
 
-function getHookScriptPath(extensionPath: string): string | null {
-  const hookPath = path.join(extensionPath, "hooks", "lineu-capture.py");
-  return fs.existsSync(hookPath) ? hookPath : null;
-}
+/**
+ * Copy Spark command files to workspace for the specified platform(s).
+ * Same prompt content, different target directories.
+ */
+async function copySparkCommandsToWorkspace(
+  extensionPath: string,
+  workspaceRoot: string,
+  platform: "cursor" | "claude" | "both" = "cursor"
+): Promise<void> {
+  const commands = ["spark.md", "respark.md", "deepspark.md"];
+  const sourceDir = path.join(extensionPath, "commands");
 
-function buildHooksConfigSnippet(target: string, hookPath: string): string {
-  if (target === "cursor") {
-    // Cursor 需要 version 字段，必须是数字
-    return JSON.stringify(
-      {
-        version: 1,
-        hooks: {
-          stop: [
-            {
-              command: `python3 "${hookPath}"`,
-            },
-          ],
-        },
-      },
-      null,
-      2
-    );
+  const copyToDir = async (targetDir: string): Promise<void> => {
+    await fs.promises.mkdir(targetDir, { recursive: true });
+    for (const cmd of commands) {
+      const sourcePath = path.join(sourceDir, cmd);
+      const targetPath = path.join(targetDir, cmd);
+      if (fs.existsSync(sourcePath)) {
+        await fs.promises.copyFile(sourcePath, targetPath);
+      }
+    }
+  };
+
+  if (platform === "cursor" || platform === "both") {
+    await copyToDir(path.join(workspaceRoot, ".cursor", "commands"));
   }
 
-  // Claude Code 格式
-  return JSON.stringify(
-    {
-      hooks: {
-        Stop: [
-          {
-            matcher: ".*",
-            hooks: [
-              {
-                type: "command",
-                command: `python3 "${hookPath}"`,
-              },
-            ],
-          },
-        ],
-      },
-    },
-    null,
-    2
-  );
+  if (platform === "claude" || platform === "both") {
+    await copyToDir(path.join(workspaceRoot, ".claude", "commands"));
+  }
+}
+
+/**
+ * Check if Spark commands are configured in the current workspace.
+ */
+function checkCommandsConfigured(workspaceRoot: string | undefined): boolean {
+  if (!workspaceRoot) {
+    return false;
+  }
+  const commandsDir = path.join(workspaceRoot, ".cursor", "commands");
+  const sparkPath = path.join(commandsDir, "spark.md");
+  return fs.existsSync(sparkPath);
 }
 
 function resolveMcpConfigPath(target: string): string | null {
@@ -580,17 +575,6 @@ function resolveMcpConfigPath(target: string): string | null {
       return path.join(base, "Claude", "claude_desktop_config.json");
     }
     return path.join(home, ".config", "Claude", "claude_desktop_config.json");
-  }
-  return null;
-}
-
-function resolveHooksConfigPath(target: string): string | null {
-  const home = os.homedir();
-  if (target === "cursor") {
-    return path.join(home, ".cursor", "hooks.json");
-  }
-  if (target === "claude-code") {
-    return path.join(home, ".claude", "settings.json");
   }
   return null;
 }
@@ -622,7 +606,7 @@ async function upsertMcpConfig(
   const data = await readJsonObject(configPath);
   const mcpServers =
     (data.mcpServers as Record<string, unknown>) ?? {};
-  mcpServers["lineu-cards"] = {
+  mcpServers["lineu"] = {
     command: "node",
     args: [serverPath],
   };
@@ -633,27 +617,26 @@ async function upsertMcpConfig(
   await writeJsonObject(configPath, updated);
 }
 
-async function upsertHooksConfig(
-  configPath: string,
-  hookPath: string
-): Promise<void> {
-  const data = await readJsonObject(configPath);
-  const hooks = (data.hooks as Record<string, unknown>) ?? {};
-  const stop = Array.isArray(hooks.stop) ? [...hooks.stop] : [];
-  const alreadyExists = stop.some(
-    (item) => item && typeof item === "object" && item.command === hookPath
-  );
-  if (!alreadyExists) {
-    stop.push({ command: hookPath });
+async function readJsonObjectWithStatus(
+  filePath: string
+): Promise<{ data: Record<string, unknown>; isNew: boolean }> {
+  try {
+    const content = await fs.promises.readFile(filePath, "utf-8");
+    const parsed = JSON.parse(content);
+    if (!parsed || typeof parsed !== "object") {
+      throw new Error("Config file must contain a JSON object.");
+    }
+    return { data: parsed as Record<string, unknown>, isNew: false };
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      "code" in error &&
+      (error as NodeJS.ErrnoException).code === "ENOENT"
+    ) {
+      return { data: {}, isNew: true };
+    }
+    throw error;
   }
-  const updated = {
-    ...data,
-    hooks: {
-      ...hooks,
-      stop,
-    },
-  };
-  await writeJsonObject(configPath, updated);
 }
 
 async function readJsonObject(
@@ -706,9 +689,8 @@ async function showOnboardingPanel(
   // 获取当前 onboarding 状态
   const state = await buildOnboardingState(context);
   cardsViewProvider.updateOnboardingState({
-    apiKeyConfigured: state.apiKeyConfigured,
     mcpConfigured: state.mcpConfigured,
-    hooksConfigured: state.hooksConfigured,
+    commandsConfigured: state.commandsConfigured,
   });
   
   // 显示 onboarding 视图
@@ -721,10 +703,6 @@ async function handleOnboardingAction(
   action: string
 ): Promise<void> {
   switch (action) {
-    case "configureOpenRouter":
-      await vscode.commands.executeCommand("cards.configureOpenRouterApiKey");
-      await markApiKeyConfigured(context);
-      break;
     case "copyMcpConfig":
       await vscode.commands.executeCommand("cards.copyMcpConfig");
       await context.globalState.update(ONBOARDING_MCP_KEY, true);
@@ -732,12 +710,8 @@ async function handleOnboardingAction(
     case "createMcpConfig":
       await vscode.commands.executeCommand("cards.createMcpConfig");
       break;
-    case "copyHooksConfig":
-      await vscode.commands.executeCommand("cards.copyHooksConfig");
-      await context.globalState.update(ONBOARDING_HOOKS_KEY, true);
-      break;
-    case "createHooksConfig":
-      await vscode.commands.executeCommand("cards.createHooksConfig");
+    case "copyCommands":
+      await vscode.commands.executeCommand("cards.copySparkCommands");
       break;
     case "finish":
       if (await isOnboardingComplete(context)) {
@@ -757,9 +731,8 @@ async function handleOnboardingAction(
   if (cardsViewProvider) {
     const state = await buildOnboardingState(context);
     cardsViewProvider.updateOnboardingState({
-      apiKeyConfigured: state.apiKeyConfigured,
       mcpConfigured: state.mcpConfigured,
-      hooksConfigured: state.hooksConfigured,
+      commandsConfigured: state.commandsConfigured,
     });
   }
 }
@@ -767,35 +740,30 @@ async function handleOnboardingAction(
 async function buildOnboardingState(
   context: vscode.ExtensionContext
 ): Promise<{
-  apiKeyConfigured: boolean;
   mcpConfigured: boolean;
-  hooksConfigured: boolean;
+  commandsConfigured: boolean;
   requiredDone: boolean;
 }> {
-  const apiKeyConfigured = await hasOpenRouterApiKey(context);
   const mcpConfigured = await checkMcpConfigured();
-  const hooksConfigured = await checkHooksConfigured();
-  const requiredDone = apiKeyConfigured && mcpConfigured;
+  const commandsConfigured = checkCommandsConfigured(getWorkspaceRoot());
+  const requiredDone = mcpConfigured;
   
   // 同步更新 globalState
-  await context.globalState.update(ONBOARDING_API_KEY, apiKeyConfigured);
   await context.globalState.update(ONBOARDING_MCP_KEY, mcpConfigured);
-  await context.globalState.update(ONBOARDING_HOOKS_KEY, hooksConfigured);
+  await context.globalState.update(ONBOARDING_COMMANDS_KEY, commandsConfigured);
   
   return {
-    apiKeyConfigured,
     mcpConfigured,
-    hooksConfigured,
+    commandsConfigured,
     requiredDone,
   };
 }
 
 async function isOnboardingComplete(
-  context: vscode.ExtensionContext
+  _context: vscode.ExtensionContext
 ): Promise<boolean> {
-  const apiKeyConfigured = await hasOpenRouterApiKey(context);
   const mcpConfigured = await checkMcpConfigured();
-  return apiKeyConfigured && mcpConfigured;
+  return mcpConfigured;
 }
 
 /**
@@ -821,48 +789,6 @@ async function checkMcpConfigured(): Promise<boolean> {
     }
   }
   return false;
-}
-
-/**
- * 检查 Hooks 配置文件是否存在并包含 lineu 配置
- */
-async function checkHooksConfigured(): Promise<boolean> {
-  const home = os.homedir();
-  const configPaths = [
-    path.join(home, ".cursor", "hooks.json"),
-    path.join(home, ".claude", "settings.json"),
-  ];
-
-  for (const configPath of configPaths) {
-    try {
-      const content = await readFile(configPath, "utf-8");
-      const config = JSON.parse(content);
-      // 检查是否有 lineu 相关的 hook
-      const hooksStr = JSON.stringify(config);
-      if (hooksStr.includes("lineu") || hooksStr.includes("lineu-capture")) {
-        return true;
-      }
-    } catch {
-      // 文件不存在或解析失败，继续检查下一个
-    }
-  }
-  return false;
-}
-
-async function markApiKeyConfigured(
-  context: vscode.ExtensionContext
-): Promise<void> {
-  const hasKey = await hasOpenRouterApiKey(context);
-  if (hasKey) {
-    await context.globalState.update(ONBOARDING_API_KEY, true);
-  }
-}
-
-async function hasOpenRouterApiKey(
-  context: vscode.ExtensionContext
-): Promise<boolean> {
-  const value = await context.secrets.get("cards.openRouterApiKey");
-  return Boolean(value);
 }
 
 function createNonce(): string {

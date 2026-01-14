@@ -49,7 +49,7 @@ Add to your Cursor MCP settings (`~/.cursor/mcp.json`):
 ```json
 {
   "mcpServers": {
-    "lineu-cards": {
+    "lineu": {
       "command": "node",
       "args": ["/path/to/lineu/packages/mcp-server/dist/index.js"]
     }
@@ -64,7 +64,7 @@ Add to Claude Desktop config (`~/Library/Application Support/Claude/claude_deskt
 ```json
 {
   "mcpServers": {
-    "lineu-cards": {
+    "lineu": {
       "command": "node",
       "args": ["/path/to/lineu/packages/mcp-server/dist/index.js"]
     }

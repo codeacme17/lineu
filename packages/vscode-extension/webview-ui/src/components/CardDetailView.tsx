@@ -1,6 +1,66 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import type { Card } from "../types";
 
+// Generate prompt for respark/deepspark
+function generateSparkPrompt(card: Card, action: "respark" | "deepspark"): string {
+  const context = card.context || card.summary;
+  
+  if (action === "respark") {
+    return `Based on this knowledge card, please generate a DIFFERENT perspective or insight.
+
+**Original Card:**
+- Title: ${card.title}
+- Summary: ${card.summary}
+- Type: ${card.type}
+
+**Original Conversation Context:**
+${context}
+
+---
+
+Please focus on:
+- Alternative approaches or solutions
+- Trade-offs that weren't highlighted
+- Related concepts that weren't the main focus
+- Potential gotchas or edge cases
+
+Then call capture_context MCP tool with:
+- action: "respark"
+- cardId: "${card.id}"
+- type: Choose appropriate type
+- seedText: Your new summary
+- rawConversation: Include this conversation
+- pushToExtension: true`;
+  }
+  
+  // deepspark
+  return `Please help me understand this topic more deeply.
+
+**Card to Deep Dive:**
+- Title: ${card.title}
+- Summary: ${card.summary}
+- Type: ${card.type}
+
+**Original Conversation Context:**
+${context}
+
+---
+
+Please explain:
+1. **Why** - The underlying reason or motivation
+2. **How** - The mechanism or implementation details
+3. **When** - Best use cases and when to avoid
+4. **What if** - Edge cases, limitations, or alternatives
+
+Then call capture_context MCP tool with:
+- action: "deepspark"
+- cardId: "${card.id}"
+- type: "knowledge"
+- seedText: A comprehensive summary of the deep dive
+- rawConversation: Include this conversation
+- pushToExtension: true`;
+}
+
 interface CardDetailViewProps {
   savedCards: Card[];
   deckCards: Card[];
@@ -21,6 +81,7 @@ export function CardDetailView({
   const [indicatorHover, setIndicatorHover] = useState(false);
   const [transitionDirection, setTransitionDirection] = useState<"next" | "prev" | null>(null);
   const [hoveredBookmark, setHoveredBookmark] = useState<{ id: string; top: number; title: string } | null>(null);
+  const [copiedAction, setCopiedAction] = useState<"respark" | "deepspark" | null>(null);
   const viewRef = useRef<HTMLDivElement>(null);
 
   // 合并所有卡片用于导航
@@ -73,6 +134,26 @@ export function CardDetailView({
       setDeletingId(null);
     }, 300);
   }, [activeCardId, currentIndex, currentList, onDelete, onBack]);
+
+  // Copy prompt to clipboard for respark/deepspark
+  const handleCopyPrompt = useCallback(async (action: "respark" | "deepspark") => {
+    const prompt = generateSparkPrompt(activeCard, action);
+    try {
+      await navigator.clipboard.writeText(prompt);
+      setCopiedAction(action);
+      setTimeout(() => setCopiedAction(null), 2000);
+    } catch {
+      // Fallback for older browsers
+      const textarea = document.createElement("textarea");
+      textarea.value = prompt;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textarea);
+      setCopiedAction(action);
+      setTimeout(() => setCopiedAction(null), 2000);
+    }
+  }, [activeCard]);
 
   // 底部区域滚轮切换
   useEffect(() => {
@@ -194,13 +275,29 @@ export function CardDetailView({
             <span className="card-type-badge">{activeCard.type}</span>
             <span className="card-source">from {activeCard.source}</span>
             {isSaved && (
-              <button className="delete-btn-inline" onClick={handleDelete} title="Delete">
-                <svg className="icon" viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M3 6h18" />
-                  <path d="M8 6V4h8v2" />
-                  <path d="M6 6l1 14h10l1-14" />
-                </svg>
-              </button>
+              <>
+                <button 
+                  className={`spark-btn respark ${copiedAction === "respark" ? "copied" : ""}`}
+                  onClick={() => handleCopyPrompt("respark")} 
+                  title="Respark: Generate different perspective"
+                >
+                  {copiedAction === "respark" ? "Copied!" : "🔄 Respark"}
+                </button>
+                <button 
+                  className={`spark-btn deepspark ${copiedAction === "deepspark" ? "copied" : ""}`}
+                  onClick={() => handleCopyPrompt("deepspark")} 
+                  title="Deepspark: Deep dive into this topic"
+                >
+                  {copiedAction === "deepspark" ? "Copied!" : "🔍 Deepspark"}
+                </button>
+                <button className="delete-btn-inline" onClick={handleDelete} title="Delete">
+                  <svg className="icon" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M3 6h18" />
+                    <path d="M8 6V4h8v2" />
+                    <path d="M6 6l1 14h10l1-14" />
+                  </svg>
+                </button>
+              </>
             )}
           </div>
           

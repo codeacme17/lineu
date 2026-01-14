@@ -24,12 +24,10 @@
     "onStartupFinished",
     "onCommand:cards.captureContextAndGenerate",
     "onCommand:cards.openCollection",
-    "onCommand:cards.configureOpenRouterApiKey",
     "onCommand:cards.copyMcpServerPath",
     "onCommand:cards.copyMcpConfig",
     "onCommand:cards.createMcpConfig",
-    "onCommand:cards.copyHooksConfig",
-    "onCommand:cards.createHooksConfig",
+    "onCommand:cards.copySparkCommands",
     "onCommand:cards.showOnboarding",
     "onUri"
   ],
@@ -74,12 +72,8 @@
         "title": "Lineu: Create MCP Config File"
       },
       {
-        "command": "cards.copyHooksConfig",
-        "title": "Lineu: Copy Hooks Config"
-      },
-      {
-        "command": "cards.createHooksConfig",
-        "title": "Lineu: Create Hooks Config File"
+        "command": "cards.copySparkCommands",
+        "title": "Lineu: Copy Spark Commands to Project"
       },
       {
         "command": "cards.showOnboarding",
@@ -118,7 +112,7 @@
     "dist",
     "resources",
     "mcp-server/dist",
-    "hooks",
+    "commands",
     "webview-ui/dist",
     "README.md"
   ]
