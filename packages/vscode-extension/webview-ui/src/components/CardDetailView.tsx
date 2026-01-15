@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import type { Card } from "../types";
+import { Markdown } from "./Markdown";
 
 // Generate prompt for deep/dislike actions
 function generateActionPrompt(card: Card, action: "deep" | "dislike"): string {
@@ -323,13 +324,13 @@ export function CardDetailView({
           
           <section className="card-detail-section">
             <h2>Summary</h2>
-            <p>{activeCard.summary}</p>
+            <Markdown>{activeCard.summary}</Markdown>
           </section>
 
           {activeCard.detail && (
             <section className="card-detail-section">
               <h2>Details</h2>
-              <p className="card-detail-body">{activeCard.detail}</p>
+              <Markdown className="card-detail-body">{activeCard.detail}</Markdown>
             </section>
           )}
 
