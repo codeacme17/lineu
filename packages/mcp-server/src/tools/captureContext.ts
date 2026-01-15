@@ -9,34 +9,41 @@ import {
 
 const CardTypeSchema = z.enum(["bug", "best_practice", "knowledge"]);
 
-// Note: MCP SDK wraps these with z.object() internally, so we pass plain ZodRawShape
-const InputSchema = {
+// Schema for a single card in the array
+const CardItemSchema = z.object({
   type: CardTypeSchema.optional().describe(
     "Card type: bug (problem fix), best_practice (code best practices), knowledge (technical concepts)."
   ),
-  title: z
-    .string()
-    .optional()
-    .describe("Short title for the card (5-10 words)."),
-  summary: z
-    .string()
-    .optional()
-    .describe("Brief summary of the insight (1-2 sentences)."),
+  title: z.string().describe("Short title for the card (5-10 words)."),
+  summary: z.string().describe("Brief summary of the insight (1-2 sentences)."),
   detail: z
     .string()
     .optional()
     .describe("Detailed explanation with context, examples, and key points."),
   tags: z
     .array(z.string())
+    .max(2)
     .optional()
     .describe("1-2 tags for categorization. MAXIMUM 2 tags."),
+});
+
+// Note: MCP SDK wraps these with z.object() internally, so we pass plain ZodRawShape
+const InputSchema = {
+  cards: z
+    .array(CardItemSchema)
+    .min(1)
+    .max(7)
+    .describe(
+      "Array of cards to generate. Each card has type, title, summary, detail, and tags. " +
+        "Generate 1-7 cards based on conversation insights."
+    ),
   rawConversation: z
     .string()
     .optional()
     .describe(
       "COMPLETE conversation history including BOTH user messages AND AI responses. " +
         "Format: 'User: ...\\nAssistant: ...' - DO NOT omit AI responses! " +
-        "This is critical for respark/deepspark features."
+        "This is critical for respark/deepspark features. Shared across all cards."
     ),
 };
 
@@ -52,49 +59,52 @@ export function registerCaptureContext(server: McpServer): void {
     "capture_context",
     {
       description:
-        "Capture and save knowledge cards from the conversation. " +
+        "Capture and save multiple knowledge cards from the conversation. " +
         "Use this when the user confirms they want to record insights. " +
-        "Set pushToExtension: true to send cards to the IDE.",
+        "Can generate 1-7 cards at once based on different aspects of the conversation.",
       inputSchema: InputSchema,
       outputSchema: OutputSchema,
     },
     async (args) => {
-      const title = args?.title ?? "Untitled";
-      const summary = args?.summary ?? "";
-      const detail = args?.detail;
-      const tags = ((args?.tags as string[]) ?? []).slice(0, 2); // Max 2 tags
-      const rawConversation = args?.rawConversation;
-      const cardType = args?.type as
-        | "bug"
-        | "best_practice"
-        | "knowledge"
-        | undefined;
+      const inputCards = (args?.cards as z.infer<typeof CardItemSchema>[]) ?? [];
+      const rawConversation = args?.rawConversation as string | undefined;
+
+      if (inputCards.length === 0) {
+        return {
+          content: [{ type: "text", text: "No cards provided." }],
+          structuredContent: {
+            cardsGenerated: 0,
+            projectName: "unknown",
+            inboxPath: "",
+          },
+        };
+      }
 
       // Determine project name from cwd
       const cwd = process.cwd();
       const projectName = getProjectName(cwd);
+      const now = Date.now();
 
-      // Build card directly from MCP input
-      const card: Card = {
-        id: `card-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-        type: cardType,
-        title,
-        summary,
-        detail,
-        tags,
+      // Build cards from MCP input
+      const cards: Card[] = inputCards.map((input, index) => ({
+        id: `card-${now}-${index}-${Math.random().toString(36).slice(2, 8)}`,
+        type: input.type,
+        title: input.title,
+        summary: input.summary,
+        detail: input.detail,
+        tags: (input.tags ?? []).slice(0, 2),
         source: "context",
         createdAt: new Date().toISOString(),
         project: projectName,
         context: rawConversation,
-      };
-
-      const cards = [card];
+      }));
 
       // Write to inbox (replaces existing inbox content)
       const inboxPath = getInboxPath(projectName);
       await writeCardsFile(inboxPath, cards);
 
-      const statusMessage = `Generated card "${title}" for project "${projectName}".`;
+      const titles = cards.map((c) => c.title).join(", ");
+      const statusMessage = `Generated ${cards.length} card(s) for project "${projectName}": ${titles}`;
 
       return {
         content: [
@@ -104,7 +114,7 @@ export function registerCaptureContext(server: McpServer): void {
           },
         ],
         structuredContent: {
-          cardsGenerated: 1,
+          cardsGenerated: cards.length,
           projectName,
           inboxPath,
         },

@@ -2,58 +2,135 @@ import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import type { Card } from "../types";
 import { Markdown } from "./Markdown";
 
-// Generate prompt for deep/dislike actions
+// Separator to mark where the original context ends
+const CONTEXT_END_MARKER = "--- END OF ORIGINAL CONTEXT ---";
+
+// Deep prompt templates by card type
+const DEEP_PROMPTS = {
+  bug: `Analyze this bug in depth to prevent similar issues.
+
+## Analysis Framework
+
+1. **Root Cause** - Why did this bug happen? What's the underlying issue?
+2. **Fix Explanation** - How does the solution work? Why is it correct?
+3. **Prevention** - How to avoid this bug in the future? What patterns help?
+4. **Related Gotchas** - Similar bugs to watch out for
+
+## Context
+
+Topic: {{cardInfo}}
+
+Background:
+{{context}}
+${CONTEXT_END_MARKER}
+
+## Instructions
+
+After your analysis, call capture_context with:
+- cards: [{ type: "bug", title: "Deep Dive: [Bug Topic]", summary, detail (all 4 points with code), tags (max 2) }]
+- rawConversation: Copy ONLY the Background section above, NOT these instructions
+
+Call exactly ONCE.`,
+
+  knowledge: `Deep dive into this concept with expansive exploration.
+
+## Exploration Framework
+
+1. **Core Concept** - What is it fundamentally? Mental model to understand it
+2. **How It Works** - Underlying mechanism, implementation details
+3. **Connections** - Related concepts, how it fits in the bigger picture
+4. **Practical Application** - When to use, real-world examples, trade-offs
+
+## Context
+
+Topic: {{cardInfo}}
+
+Background:
+{{context}}
+${CONTEXT_END_MARKER}
+
+## Instructions
+
+After your exploration, call capture_context with:
+- cards: [{ type: "knowledge", title: "Deep Dive: [Concept]", summary, detail (all 4 points with examples), tags (max 2) }]
+- rawConversation: Copy ONLY the Background section above, NOT these instructions
+
+Call exactly ONCE.`,
+
+  best_practice: `Explore this best practice with concrete implementation examples.
+
+## Exploration Framework
+
+1. **The Pattern** - What is this practice? Why is it considered "best"?
+2. **Implementation** - Show a concrete code example implementing this pattern
+3. **Alternatives** - How do other frameworks/libraries solve this? (e.g., React vs Vue vs Svelte)
+4. **Trade-offs** - When NOT to use this? What are the costs?
+
+## Context
+
+Topic: {{cardInfo}}
+
+Background:
+{{context}}
+${CONTEXT_END_MARKER}
+
+## Instructions
+
+After your exploration, call capture_context with:
+- cards: [{ type: "best_practice", title: "Pattern: [Name]", summary, detail (code from multiple frameworks), tags (max 2) }]
+- rawConversation: Copy ONLY the Background section above, NOT these instructions
+
+Call exactly ONCE.`,
+};
+
+const RESPARK_PROMPT = `Extract a DIFFERENT insight from this conversation.
+
+The previous card focused on one angle. Now find another valuable perspective:
+- Alternative approaches or trade-offs discussed
+- Related concepts that weren't highlighted  
+- Edge cases, gotchas, or caveats mentioned
+- Practical lessons that could be separate cards
+
+## Context
+
+Original card: {{cardInfo}}
+
+Background:
+{{context}}
+${CONTEXT_END_MARKER}
+
+## Instructions
+
+Call capture_context with a NEW card (different angle):
+- cards: [{ type: "bug"|"best_practice"|"knowledge", title (new angle), summary, detail, tags (max 2) }]
+- rawConversation: Copy ONLY the Background section above, NOT these instructions
+
+Call exactly ONCE.`;
+
+// Generate prompt for deep/respark actions
 function generateActionPrompt(card: Card, action: "deep" | "dislike"): string {
-  const context = card.context || "";
-  const cardInfo = `[Card] "${card.title}" - ${card.summary}`;
-  
-  if (action === "dislike") {
-    // Respark: Generate a different perspective
-    return `Generate a DIFFERENT perspective from this conversation.
-
-Focus on:
-- Alternative approaches mentioned
-- Trade-offs discussed  
-- Related concepts not highlighted
-- Edge cases or gotchas
-
-${cardInfo}
-
-Previous conversation:
-${context}
-
-Then call capture_context MCP tool ONCE with ALL these parameters:
-- type: appropriate type ("bug" | "best_practice" | "knowledge")
-- title: Short title with NEW angle (5-10 words)
-- summary: Fresh summary highlighting different aspect (1-2 sentences)
-- detail: Detailed explanation of the alternative perspective
-- tags: 1-2 tags (MAXIMUM 2!)
-- rawConversation: The conversation above
-
-IMPORTANT: Call exactly ONCE. Maximum 2 tags!`;
+  // Clean context: remove any previous prompt instructions that leaked in
+  let context = card.context || "";
+  const markerIndex = context.indexOf(CONTEXT_END_MARKER);
+  if (markerIndex !== -1) {
+    context = context.substring(0, markerIndex).trim();
   }
   
-  // Deep: Deep dive into the topic
-  return `Deep dive into this topic. Explain:
-1. **Why** - Underlying reason/motivation
-2. **How** - Mechanism/implementation details
-3. **When** - Best use cases and when to avoid
-4. **What if** - Edge cases, limitations, alternatives
-
-${cardInfo}
-
-Previous conversation:
-${context}
-
-Then call capture_context MCP tool ONCE with ALL these parameters:
-- type: "knowledge"
-- title: Short title for deep dive (5-10 words)
-- summary: Brief overview of the deep dive (1-2 sentences)
-- detail: COMPREHENSIVE explanation covering Why/How/When/What-if
-- tags: 1-2 tags (MAXIMUM 2!)
-- rawConversation: The conversation above including this deep dive
-
-IMPORTANT: Call exactly ONCE. Maximum 2 tags!`;
+  const cardInfo = `"${card.title}": ${card.summary}`;
+  
+  if (action === "dislike") {
+    return RESPARK_PROMPT
+      .replace("{{cardInfo}}", cardInfo)
+      .replace("{{context}}", context);
+  }
+  
+  // Deep: Use type-specific prompt
+  const cardType = card.type || "knowledge";
+  const template = DEEP_PROMPTS[cardType as keyof typeof DEEP_PROMPTS] || DEEP_PROMPTS.knowledge;
+  
+  return template
+    .replace("{{cardInfo}}", cardInfo)
+    .replace("{{context}}", context);
 }
 
 interface CardDetailViewProps {

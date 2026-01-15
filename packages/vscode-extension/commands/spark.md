@@ -1,14 +1,42 @@
-Call capture_context MCP tool ONCE to record this conversation.
+Review this vibe coding session and capture insights as knowledge cards.
 
-You MUST include ALL of these parameters:
-- type: "bug" | "best_practice" | "knowledge" (choose based on conversation)
-- title: Short title (5-10 words)
-- summary: Brief summary (1-2 sentences)
-- detail: Detailed explanation with context and examples
-- tags: 1-2 tags for categorization (MAXIMUM 2 tags!)
-- rawConversation: COMPLETE conversation history including BOTH user messages AND your (AI) responses. Format as "User: ...\nAssistant: ..." - DO NOT omit AI responses!
+Analyze the conversation and code changes to extract:
+1. **Code Issues** (type: `bug`) - Problems found, potential bugs, things that need fixing
+2. **Knowledge Gained** (type: `knowledge`) - Concepts learned, how things work, technical understanding
+3. **Improvement Ideas** (type: `best_practice`) - Better patterns, refactoring suggestions, recommended approaches
 
-CRITICAL RULES:
-- Call this tool exactly ONCE
-- tags: MAXIMUM 2 tags only!
-- rawConversation MUST include your full AI responses, not just user messages!
+## Card Types
+
+| Type | What to Capture | Example Titles |
+|------|-----------------|----------------|
+| `bug` | Problem root cause, debugging insights, fixes needed | "Race condition in useEffect cleanup", "Memory leak from unsubscribed listeners" |
+| `knowledge` | How something works, concepts explained, TIL moments | "How React Suspense handles loading states", "Difference between useMemo and useCallback" |
+| `best_practice` | Better patterns, code improvements, architectural suggestions | "Extract custom hook for data fetching", "Use discriminated unions for type safety" |
+
+## Instructions
+
+Call capture_context MCP tool ONCE with multiple cards:
+
+```
+{
+  "cards": [
+    {
+      "type": "bug" | "best_practice" | "knowledge",
+      "title": "Concise title (5-10 words)",
+      "summary": "One sentence TL;DR",
+      "detail": "Markdown: context → problem/concept → solution/explanation → examples",
+      "tags": ["tag1", "tag2"]  // MAX 2
+    },
+    // ... more cards
+  ],
+  "rawConversation": "Full conversation (user + assistant messages)"
+}
+```
+
+## Rules
+
+- Generate 1-7 cards based on conversation richness
+- Each insight should be a separate card with appropriate type
+- Maximum 2 tags per card
+- Include BOTH user messages AND assistant responses in rawConversation
+- Prioritize actionable insights over trivial observations
