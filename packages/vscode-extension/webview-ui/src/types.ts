@@ -38,11 +38,12 @@ export type WebviewMessage =
   | { type: "delete"; id: string }
   | { type: "updateTags"; id: string; tags: string[] }
   | { type: "ready" }
-  | { type: "onboardingAction"; action: string };
+  | { type: "onboardingAction"; action: string; data?: unknown };
 
 // VSCode 发送给 Webview 的消息类型
 export type ExtensionMessage =
   | { type: "update"; data: WebviewInitialData }
   | { type: "cardSaved"; id: string }
   | { type: "onboardingState"; state: OnboardingState }
-  | { type: "showOnboarding" };
+  | { type: "showOnboarding" }
+  | { type: "hideOnboarding" };

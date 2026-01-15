@@ -13,7 +13,7 @@ export class CardsViewProvider implements vscode.WebviewViewProvider {
   private cards: Card[] = [];
   private mode: WebviewMode = "deal";
   private onFavorite?: (card: Card) => Promise<void>;
-  private onOnboardingAction?: (action: string) => Promise<void>;
+  private onOnboardingAction?: (action: string, data?: unknown) => Promise<void>;
   private onboardingState: OnboardingState = {
     mcpConfigured: false,
     commandsConfigured: false,
@@ -44,6 +44,7 @@ export class CardsViewProvider implements vscode.WebviewViewProvider {
         id?: string;
         tags?: string[];
         action?: string;
+        data?: unknown;
       }) => {
         switch (message?.type) {
           case "favorite":
@@ -66,7 +67,7 @@ export class CardsViewProvider implements vscode.WebviewViewProvider {
             break;
           case "onboardingAction":
             if (this.onOnboardingAction && message.action) {
-              await this.onOnboardingAction(message.action);
+              await this.onOnboardingAction(message.action, message.data);
             }
             break;
         }
@@ -88,7 +89,7 @@ export class CardsViewProvider implements vscode.WebviewViewProvider {
     this.sendUpdate();
   }
 
-  setOnboardingHandler(handler: (action: string) => Promise<void>) {
+  setOnboardingHandler(handler: (action: string, data?: unknown) => Promise<void>) {
     this.onOnboardingAction = handler;
   }
 
@@ -104,6 +105,13 @@ export class CardsViewProvider implements vscode.WebviewViewProvider {
     this.showOnboarding = true;
     this.view?.webview.postMessage({
       type: "showOnboarding",
+    });
+  }
+
+  hideOnboardingView() {
+    this.showOnboarding = false;
+    this.view?.webview.postMessage({
+      type: "hideOnboarding",
     });
   }
 

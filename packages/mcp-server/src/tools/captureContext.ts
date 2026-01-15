@@ -9,6 +9,7 @@ import {
 
 const CardTypeSchema = z.enum(["bug", "best_practice", "knowledge"]);
 
+// Note: MCP SDK wraps these with z.object() internally, so we pass plain ZodRawShape
 const InputSchema = {
   type: CardTypeSchema.optional().describe(
     "Card type: bug (problem fix), best_practice (code best practices), knowledge (technical concepts)."
@@ -33,11 +34,13 @@ const InputSchema = {
     .string()
     .optional()
     .describe(
-      "Full conversation history for context. Stored but not displayed. " +
-        "Used for respark/deepspark features. Include the complete dialogue."
+      "COMPLETE conversation history including BOTH user messages AND AI responses. " +
+        "Format: 'User: ...\\nAssistant: ...' - DO NOT omit AI responses! " +
+        "This is critical for respark/deepspark features."
     ),
 };
 
+// Note: MCP SDK wraps these with z.object() internally, so we pass plain ZodRawShape
 const OutputSchema = {
   cardsGenerated: z.number().describe("Number of cards generated."),
   projectName: z.string().describe("Project name where cards were saved."),

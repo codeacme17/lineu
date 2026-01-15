@@ -246,8 +246,8 @@ export function activate(context: vscode.ExtensionContext) {
   cardsViewProvider = new CardsViewProvider(context.extensionUri);
   
   // 设置 onboarding action handler
-  cardsViewProvider.setOnboardingHandler(async (action: string) => {
-    await handleOnboardingAction(context, action);
+  cardsViewProvider.setOnboardingHandler(async (action: string, data?: unknown) => {
+    await handleOnboardingAction(context, action, data);
   });
   
   const cardsViewRegistration = vscode.window.registerWebviewViewProvider(
@@ -435,7 +435,7 @@ async function copySparkCommandsToWorkspace(
   workspaceRoot: string,
   platform: "cursor" | "claude" | "both" = "cursor"
 ): Promise<void> {
-  const commands = ["spark.md", "respark.md", "deepspark.md"];
+  const commands = ["spark.md"];
   const sourceDir = path.join(extensionPath, "commands");
 
   const copyToDir = async (targetDir: string): Promise<void> => {
@@ -602,23 +602,22 @@ async function showOnboardingPanel(
     return;
   }
 
-  // 获取当前 onboarding 状态
-  const state = await buildOnboardingState(context);
-  cardsViewProvider.updateOnboardingState({
-    mcpConfigured: state.mcpConfigured,
-    commandsConfigured: state.commandsConfigured,
-  });
-  
-  // 显示 onboarding 视图
+  // 标记需要显示 onboarding（在 webview 初始化时会读取这个状态）
   cardsViewProvider.showOnboardingView();
-  cardsViewProvider.reveal();
+  
+  // 强制打开侧边栏视图（这会触发 resolveWebviewView）
+  await vscode.commands.executeCommand("workbench.view.extension.cardsView");
 }
 
 async function handleOnboardingAction(
   context: vscode.ExtensionContext,
-  action: string
+  action: string,
+  data?: unknown
 ): Promise<void> {
   switch (action) {
+    case "quickSetup":
+      await handleQuickSetup(context, data as string[]);
+      break;
     case "copyMcpConfig":
       await vscode.commands.executeCommand("cards.copyMcpConfig");
       await context.globalState.update(ONBOARDING_MCP_KEY, true);
@@ -642,14 +641,104 @@ async function handleOnboardingAction(
     default:
       break;
   }
+}
 
-  // 更新 onboarding 状态
+/**
+ * 一键配置：根据选择的平台自动配置 MCP 和 Commands
+ */
+async function handleQuickSetup(
+  context: vscode.ExtensionContext,
+  platforms: string[]
+): Promise<void> {
+  if (!platforms || platforms.length === 0) {
+    return;
+  }
+
+  const serverPath = getEmbeddedMcpServerPath(context.extensionPath);
+  if (!serverPath) {
+    vscode.window.showErrorMessage(
+      "Embedded MCP server not found. Please reinstall the extension."
+    );
+    return;
+  }
+
+  const results: string[] = [];
+  const errors: string[] = [];
+
+  let mcpConfigPath: string | null = null;
+
+  for (const platform of platforms) {
+    try {
+      switch (platform) {
+        case "cursor": {
+          // 1. 创建 MCP 配置
+          const mcpPath = resolveMcpConfigPath("cursor");
+          if (mcpPath) {
+            await upsertMcpConfig(mcpPath, serverPath);
+            mcpConfigPath = mcpPath;
+            results.push("Cursor MCP");
+          }
+          // 2. 安装 Commands
+          await copySparkCommandsToWorkspace(
+            context.extensionPath,
+            os.homedir(),
+            "cursor"
+          );
+          results.push("Cursor Commands");
+          break;
+        }
+        case "claude-desktop": {
+          // 只创建 MCP 配置
+          const mcpPath = resolveMcpConfigPath("claude-desktop");
+          if (mcpPath) {
+            await upsertMcpConfig(mcpPath, serverPath);
+            mcpConfigPath = mcpPath;
+            results.push("Claude Desktop MCP");
+          }
+          break;
+        }
+        case "claude-code": {
+          // 只安装 Commands
+          await copySparkCommandsToWorkspace(
+            context.extensionPath,
+            os.homedir(),
+            "claude"
+          );
+          results.push("Claude Code Commands");
+          break;
+        }
+      }
+    } catch (error) {
+      errors.push(`${platform}: ${formatError(error)}`);
+    }
+  }
+
+  // 标记完成
+  await context.globalState.update(ONBOARDING_MCP_KEY, true);
+  await context.globalState.update(ONBOARDING_COMMANDS_KEY, true);
+  await context.globalState.update(ONBOARDING_COMPLETED_KEY, true);
+
+  // 显示结果
+  if (results.length > 0) {
+    const needsRestart = platforms.includes("cursor") || platforms.includes("claude-desktop");
+    const restartHint = needsRestart ? " Restart your AI tool to activate." : "";
+    vscode.window.showInformationMessage(
+      `Lineu configured: ${results.join(", ")}.${restartHint}`
+    );
+  }
+
+  if (errors.length > 0) {
+    vscode.window.showWarningMessage(`Some errors occurred: ${errors.join("; ")}`);
+  }
+
+  // 打开 MCP 配置文件让用户确认
+  if (mcpConfigPath) {
+    await openConfigFile(mcpConfigPath);
+  }
+
+  // 切换到卡片视图
   if (cardsViewProvider) {
-    const state = await buildOnboardingState(context);
-    cardsViewProvider.updateOnboardingState({
-      mcpConfigured: state.mcpConfigured,
-      commandsConfigured: state.commandsConfigured,
-    });
+    cardsViewProvider.hideOnboardingView();
   }
 }
 

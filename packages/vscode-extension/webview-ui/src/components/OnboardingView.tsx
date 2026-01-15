@@ -1,31 +1,24 @@
-import { useCallback } from "react";
-
-interface OnboardingState {
-  mcpConfigured: boolean;
-  commandsConfigured: boolean;
-}
+import { useState, useCallback } from "react";
 
 interface OnboardingViewProps {
-  state: OnboardingState;
-  onAction: (action: string) => void;
+  onAction: (action: string, data?: unknown) => void;
   onBack: () => void;
-  isHelpMode?: boolean; // true = 从设置进入的 Help 模式
+  isHelpMode?: boolean;
 }
 
 export function OnboardingView({
-  state,
   onAction,
   onBack,
   isHelpMode = false,
 }: OnboardingViewProps) {
-  const requiredDone = state.mcpConfigured;
+  const [cursorSelected, setCursorSelected] = useState(true); // 默认选中
+  const [isSettingUp, setIsSettingUp] = useState(false);
 
-  const handleFinish = useCallback(() => {
-    if (requiredDone) {
-      onAction("finish");
-      onBack();
-    }
-  }, [requiredDone, onAction, onBack]);
+  const handleSetup = useCallback(async () => {
+    if (!cursorSelected) return;
+    setIsSettingUp(true);
+    onAction("quickSetup", ["cursor"]);
+  }, [cursorSelected, onAction]);
 
   return (
     <div className={`onboarding ${isHelpMode ? "help-mode" : ""}`}>
@@ -39,88 +32,75 @@ export function OnboardingView({
           </button>
         )}
         <h1 className="onboarding-title">
-          {isHelpMode ? "Help" : "Welcome to Lineu"}
+          {isHelpMode ? "Setup" : "Welcome to Lineu"}
         </h1>
       </div>
 
-      <div className="onboarding-steps">
-        <div className="step">
-          <div className="step-header">
-            <h2>Step 1: Configure MCP</h2>
-            {!isHelpMode && (
-              <span className={`status ${state.mcpConfigured ? "done" : ""}`}>
-                {state.mcpConfigured ? "✓" : "Required"}
-              </span>
-            )}
-          </div>
-          <p>
-            {isHelpMode
-              ? "Create the MCP config file for your AI tool."
-              : "Required. Create the MCP config file for Lineu to work."}
-          </p>
-          {!isHelpMode && (
-            <p className="step-hint">Restart your AI tool after creating the config.</p>
-          )}
-          <div className="step-actions">
-            <button
-              className="btn btn-secondary"
-              onClick={() => onAction("createMcpConfig")}
-            >
-              Create MCP Config
-            </button>
+      <div className="onboarding-content">
+        <p className="onboarding-subtitle">
+          Select your AI tool to set up Lineu:
+        </p>
+
+        <div className="platform-grid">
+          {/* Cursor - 可选 */}
+          <button
+            className={`platform-card ${cursorSelected ? "selected" : ""}`}
+            onClick={() => setCursorSelected(!cursorSelected)}
+            disabled={isSettingUp}
+          >
+            <div className="platform-check">
+              {cursorSelected && (
+                <svg viewBox="0 0 24 24" className="check-icon">
+                  <path d="M20 6L9 17l-5-5" />
+                </svg>
+              )}
+            </div>
+            <div className="platform-info">
+              <span className="platform-name">Cursor</span>
+              <span className="platform-desc">MCP + Commands</span>
+            </div>
+          </button>
+
+          {/* Coming Soon 选项 */}
+          <div className="platform-card disabled">
+            <div className="platform-check"></div>
+            <div className="platform-info">
+              <span className="platform-name">Claude Desktop / Claude Code</span>
+              <span className="platform-desc coming-soon">Coming Soon</span>
+            </div>
           </div>
         </div>
 
-        <div className="step">
-          <div className="step-header">
-            <h2>Step 2: Set Up Commands</h2>
-            {!isHelpMode && (
-              <span className={`status optional ${state.commandsConfigured ? "done" : ""}`}>
-                {state.commandsConfigured ? "✓" : "Optional"}
-              </span>
-            )}
-          </div>
-          <p>
-            {isHelpMode
-              ? "Install Spark commands for capturing knowledge."
-              : "Optional. Install Spark commands to capture knowledge from AI conversations."}
-          </p>
-          <p className="step-hint">
-            <code>/spark</code> - Capture knowledge
-            <br />
-            <code>/respark</code> - Different perspective
-            <br />
-            <code>/deepspark</code> - Deep dive
-          </p>
-          <div className="step-actions">
-            <button
-              className="btn btn-secondary"
-              onClick={() => onAction("copyCommands")}
-            >
-              Install Commands
-            </button>
-          </div>
-        </div>
+        <p className="setup-hint">
+          This will configure MCP and install Spark commands.
+        </p>
       </div>
 
       <div className="onboarding-footer">
-        {isHelpMode ? (
-          <button className="btn btn-secondary" onClick={onBack}>
-            ← Back to Cards
+        <button
+          className="btn btn-primary"
+          onClick={handleSetup}
+          disabled={!cursorSelected || isSettingUp}
+        >
+          {isSettingUp ? "Setting up..." : "Set Up Lineu"}
+        </button>
+        {!isHelpMode && (
+          <button
+            className="btn btn-secondary"
+            onClick={onBack}
+            disabled={isSettingUp}
+          >
+            Skip for Now
           </button>
-        ) : (
-          <>
-            <button
-              className="btn btn-primary"
-              onClick={handleFinish}
-              disabled={!requiredDone}
-            >
-              {requiredDone ? "✓ Complete Setup" : "Complete Step 1"}
-            </button>
-            <button className="btn btn-secondary" onClick={onBack}>
-              Skip for Now
-            </button>
-          </>
+        )}
+        {isHelpMode && (
+          <button
+            className="btn btn-secondary"
+            onClick={onBack}
+            disabled={isSettingUp}
+          >
+            Back
+          </button>
         )}
       </div>
     </div>

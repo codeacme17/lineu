@@ -874,80 +874,121 @@ body {
   letter-spacing: 0.05em;
 }
 
-.onboarding-steps {
+.onboarding-content {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
 }
 
-.step {
-  background: var(--bg-paper);
-  border: 1.5px solid var(--border-sketch);
-  border-radius: 10px;
-  padding: 12px;
-}
-
-.step-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  margin-bottom: 6px;
-}
-
-.step h2 {
-  font-family: "Caveat", cursive;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-warm);
+.onboarding-subtitle {
+  font-family: "Patrick Hand", cursive;
+  font-size: 13px;
+  color: var(--muted);
   margin: 0;
 }
 
-.step p {
-  font-family: "Patrick Hand", cursive;
-  font-size: 12px;
-  color: var(--muted);
-  margin: 0 0 6px;
-  line-height: 1.4;
-}
-
-.step-hint {
-  font-size: 11px !important;
-}
-
-.step-hint code {
-  font-family: monospace;
-  font-size: 10px;
-  color: var(--text);
-  background: rgba(210, 180, 140, 0.1);
-  padding: 1px 4px;
-  border-radius: 4px;
-}
-
-.step-actions {
+.platform-grid {
   display: flex;
-  gap: 6px;
-  margin-top: 8px;
+  flex-direction: column;
+  gap: 8px;
 }
 
-.status {
+.platform-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--bg-paper);
+  border: 1.5px solid var(--border-sketch);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+  width: 100%;
+}
+
+.platform-card:hover {
+  border-color: var(--accent);
+  background: var(--panel-soft);
+}
+
+.platform-card.selected {
+  border-color: var(--accent);
+  border-style: solid;
+  background: var(--panel-soft);
+}
+
+.platform-card:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.platform-card.disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+  border-style: dotted;
+}
+
+.platform-check {
+  width: 20px;
+  height: 20px;
+  border: 1.5px dashed var(--border-sketch);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.platform-card.selected .platform-check {
+  border-color: var(--accent);
+  border-style: solid;
+  background: var(--accent);
+}
+
+.check-icon {
+  width: 12px;
+  height: 12px;
+  stroke: var(--bg);
+  stroke-width: 3;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.platform-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.platform-name {
+  font-family: "Caveat", cursive;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-warm);
+}
+
+.platform-desc {
   font-family: "Patrick Hand", cursive;
   font-size: 11px;
-  padding: 2px 8px;
-  border-radius: 10px;
-  border: 1px dashed var(--border-sketch);
   color: var(--muted);
 }
 
-.status.done {
-  border-color: var(--accent);
-  color: var(--accent);
-  border-style: solid;
+.setup-hint {
+  font-family: "Patrick Hand", cursive;
+  font-size: 11px;
+  color: var(--muted);
+  margin: 4px 0 0;
+  font-style: italic;
 }
 
-.status.optional {
-  border-style: dotted;
+.coming-soon {
+  font-style: italic;
+  opacity: 0.7;
 }
 
 .onboarding-footer {

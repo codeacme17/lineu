@@ -15,7 +15,11 @@ const webviewUiDir = path.join(rootDir, "webview-ui");
 
 async function copyMcpServer() {
   await fs.rm(mcpTarget, { recursive: true, force: true });
-  await fs.cp(mcpSource, mcpTarget, { recursive: true });
+  await fs.mkdir(mcpTarget, { recursive: true });
+  // 只复制 index.js，不复制 .map 文件
+  const indexJs = path.join(mcpSource, "index.js");
+  const targetJs = path.join(mcpTarget, "index.js");
+  await fs.copyFile(indexJs, targetJs);
 }
 
 async function copyHooks() {

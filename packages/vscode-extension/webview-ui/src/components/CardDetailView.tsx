@@ -4,24 +4,55 @@ import type { Card } from "../types";
 // Generate prompt for deep/dislike actions
 function generateActionPrompt(card: Card, action: "deep" | "dislike"): string {
   const context = card.context || "";
-  const cardInfo = `[Card: ${card.id}] "${card.title}" - ${card.summary}`;
+  const cardInfo = `[Card] "${card.title}" - ${card.summary}`;
   
   if (action === "dislike") {
-    return `/respark
+    // Respark: Generate a different perspective
+    return `Generate a DIFFERENT perspective from this conversation.
+
+Focus on:
+- Alternative approaches mentioned
+- Trade-offs discussed  
+- Related concepts not highlighted
+- Edge cases or gotchas
 
 ${cardInfo}
 
-Context:
-${context}`;
+Previous conversation:
+${context}
+
+Then call capture_context MCP tool ONCE with ALL these parameters:
+- type: appropriate type ("bug" | "best_practice" | "knowledge")
+- title: Short title with NEW angle (5-10 words)
+- summary: Fresh summary highlighting different aspect (1-2 sentences)
+- detail: Detailed explanation of the alternative perspective
+- tags: 1-2 tags (MAXIMUM 2!)
+- rawConversation: The conversation above
+
+IMPORTANT: Call exactly ONCE. Maximum 2 tags!`;
   }
   
-  // deep
-  return `/deepspark
+  // Deep: Deep dive into the topic
+  return `Deep dive into this topic. Explain:
+1. **Why** - Underlying reason/motivation
+2. **How** - Mechanism/implementation details
+3. **When** - Best use cases and when to avoid
+4. **What if** - Edge cases, limitations, alternatives
 
 ${cardInfo}
 
-Context:
-${context}`;
+Previous conversation:
+${context}
+
+Then call capture_context MCP tool ONCE with ALL these parameters:
+- type: "knowledge"
+- title: Short title for deep dive (5-10 words)
+- summary: Brief overview of the deep dive (1-2 sentences)
+- detail: COMPREHENSIVE explanation covering Why/How/When/What-if
+- tags: 1-2 tags (MAXIMUM 2!)
+- rawConversation: The conversation above including this deep dive
+
+IMPORTANT: Call exactly ONCE. Maximum 2 tags!`;
 }
 
 interface CardDetailViewProps {

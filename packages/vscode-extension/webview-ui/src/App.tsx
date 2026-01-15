@@ -29,10 +29,12 @@ export default function App() {
   // Onboarding 状态
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [isHelpMode, setIsHelpMode] = useState(false); // true = 从设置进入
-  const [onboardingState, setOnboardingState] = useState<OnboardingState>({
+  // onboardingState 保留用于后续功能扩展
+  const [_onboardingState, setOnboardingState] = useState<OnboardingState>({
     mcpConfigured: false,
     commandsConfigured: false,
   });
+  void _onboardingState;
 
   // 卡片详细页状态
   const [selectedCard, setSelectedCard] = useState<Card | null>(null);
@@ -73,6 +75,10 @@ export default function App() {
       case "showOnboarding":
         setIsHelpMode(false); // 从扩展端触发的是 Onboarding 模式
         setShowOnboarding(true);
+        break;
+      case "hideOnboarding":
+        setShowOnboarding(false);
+        setIsHelpMode(false);
         break;
     }
   });
@@ -192,8 +198,8 @@ export default function App() {
   }, []);
 
   const handleOnboardingAction = useCallback(
-    (action: string) => {
-      postMessage({ type: "onboardingAction", action });
+    (action: string, data?: unknown) => {
+      postMessage({ type: "onboardingAction", action, data });
     },
     [postMessage]
   );
@@ -215,7 +221,6 @@ export default function App() {
   if (showOnboarding) {
     return (
       <OnboardingView
-        state={onboardingState}
         onAction={handleOnboardingAction}
         onBack={handleBackFromOnboarding}
         isHelpMode={isHelpMode}
