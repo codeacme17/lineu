@@ -1,174 +1,135 @@
-# Lineu - VSCode Extension
+# Lineu — Turn Questions into Sparks
 
-A VSCode extension for capturing Lineu insights from context and git diff.
+Lineu is an AI companion for continuous thinking and learning.
+It captures meaningful moments from your AI conversations and turns them into **Sparks** — ideas, insights, and directions worth revisiting.
 
-## Features
+Instead of letting valuable thoughts disappear after each chat, Lineu helps you keep them, organize them, and explore them further — directly inside your AI-powered workflow.
 
-- **Manual Capture**: Generate cards from selected text and git diff
-- **MCP Push**: Receive context from AI assistants (Claude Code, etc.) via MCP server
+[![Demo Video](https://img.shields.io/badge/Demo-YouTube-red?logo=youtube)](https://www.youtube.com/watch?v=hGNCBm8FARM)
 
-## MCP Integration (AI-Assisted Workflow)
+---
 
-The extension can receive context pushed from AI coding assistants through the MCP server. When you're vibe-coding with Claude Code or similar tools, the AI can automatically send learning moments to Lineu.
+## ✨ What is a Spark?
 
-### How It Works
+A **Spark** is a captured moment of thinking.
 
-1. Configure `@lineu/mcp-server` in your AI assistant
-2. During conversation, the AI calls `capture_context` with `pushToExtension: true`
-3. The extension receives the context and generates Lineu Cards
-4. You review and save the Lineu cards you want to keep
+It can be:
 
-### Built-in MCP Server (recommended)
+* A key insight
+* A piece of knowledge
+* An emerging idea
+* A direction worth exploring further
 
-This extension ships with an embedded MCP server so users do not need to install `@lineu/mcp-server` manually.
+Sparks are created directly from your AI chats and stored as structured, actionable cards.
 
-Steps:
+---
 
-1. Run `Cards: Copy MCP Server Path` to copy the embedded server path.
-2. Run `Cards: Create MCP Config File` (recommended) or `Cards: Copy MCP Config Snippet`.
-3. Restart your AI tool after updating the config.
+## 🚀 Features
 
-### Hooks (optional)
+### 🔹 Capture Sparks from chat
 
-Enable hooks to auto-capture context after each task.
+Create Sparks directly from your AI conversations using a simple command.
 
-1. Run `Cards: Create Hooks Config File` (recommended) or `Cards: Copy Hooks Config`.
-2. Paste into your tool config (if you used copy):
-   - Cursor: `~/.cursor/hooks.json` or `.cursor/hooks.json`
-   - Claude Code: `~/.claude/settings.json` or `.claude/settings.json`
-3. Restart your AI tool after updating the config.
+No context switching.
+No manual note-taking.
+Your thinking stays uninterrupted.
 
-Example (Cursor / Claude Code):
+---
 
-```json
-{
-  "hooks": {
-    "stop": [
-      {
-        "command": "/path/to/extension/hooks/lineu-capture.py"
-      }
-    ]
-  }
-}
-```
+### 🔹 Two visual modes
 
-### MCP Tool Usage
+Switch between two visual modes depending on how you think:
 
-```json
-{
-  "seedText": "Discussion about React state management patterns...",
-  "diff": "git diff output (optional)",
-  "selection": "selected code (optional)",
-  "pushToExtension": true,
-  "editor": "cursor"
-}
-```
+* **Focus mode** — stay in the flow while exploring
+* **Review mode** — step back and reflect on your Sparks
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `seedText` | string | Conversation context or summary |
-| `diff` | string | Git diff content (optional) |
-| `selection` | string | Code selection (optional) |
-| `pushToExtension` | boolean | Set `true` to push to extension |
-| `editor` | string | Target editor: `cursor` (default), `vscode`, `vscodium`, `windsurf` |
+---
 
-### Supported Editors
+### 🔹 Save, tag, and organize
 
-The MCP server supports multiple editors via URI schemes:
+Save Sparks that matter to you.
 
-- **Cursor** (`cursor://`) - default
-- **VS Code** (`vscode://`)
-- **VSCodium** (`vscodium://`)
-- **Windsurf** (`windsurf://`)
+Add **tags** to categorize and filter Sparks, making it easy to revisit ideas later and build your personal knowledge map.
 
-## Development
+---
 
-```bash
-# Install dependencies (from repo root)
-pnpm install
+### 🔹 Dive deeper
 
-# Build all packages
-pnpm build
+Some Sparks deserve more attention.
 
-# Watch mode
-pnpm watch
-```
+Select any Spark to dive deeper — explore more detailed explanations, related ideas, and new directions, powered by AI.
 
-### Debug in VSCode
+A question doesn't have to end with an answer.
 
-1. Open the repo root in VSCode
-2. Press `F5` to launch Extension Development Host
-3. Run command: `Cards: Capture Context and Generate`
+---
 
-## Commands
+## 🧠 How it works
 
-| Command                               | Description                         |
-| ------------------------------------- | ----------------------------------- |
-| `Lineu: Capture Context and Generate` | Generate cards from current context |
-| `Lineu: Open Collection`              | View saved cards                    |
-| `Lineu: Configure OpenRouter API Key` | Set API key                         |
-| `Lineu: Copy MCP Server Path`         | Copy embedded MCP server path       |
-| `Lineu: Copy MCP Config Snippet`      | Copy MCP config JSON                |
-| `Lineu: Create MCP Config File`       | Create MCP config JSON              |
-| `Lineu: Copy Hooks Config`            | Copy hooks config JSON              |
-| `Lineu: Create Hooks Config File`     | Create hooks config JSON            |
-| `Lineu: Show Onboarding`              | Open the onboarding guide           |
+1. Chat with your AI tool as usual
+2. Include the **Spark command** when a moment is worth keeping
+3. Lineu automatically creates a Spark card after the task completes
 
-## Configuration
+Your conversation continues.
+The insight stays with you.
 
-| Setting                   | Default                        | Description                                 |
-| ------------------------- | ------------------------------ | ------------------------------------------- |
-| `cards.diffMode`          | `unstaged`                     | Git diff mode: `unstaged`, `staged`, `both` |
-| `cards.mcpServerPath`     | `""`                           | Custom MCP server path                      |
-| `cards.openRouterBaseUrl` | `https://openrouter.ai/api/v1` | API base URL                                |
-| `cards.openRouterModel`   | `""`                           | Default model name                          |
+---
 
-## Build & Publish
+## 🧩 Supported AI Tools
 
-```bash
-# Build
-pnpm build
+* **Cursor** (via MCP + Commands)
+* **Claude Desktop / Claude Code** *(Coming soon)*
 
-# Package .vsix
-pnpm package
+Lineu automatically configures MCP and installs Spark commands during setup.
 
-# Publish to marketplace (requires vsce login)
-vsce publish
-```
+---
 
-## MCP Server
+## ⚙️ Installation
 
-The extension works with `@lineu/mcp-server`. It will look for the server in:
+1. Install Lineu from the VS Code Marketplace
+2. Open the Lineu setup panel
+3. Select your AI tool (e.g. Cursor)
+4. Complete setup — MCP and Spark commands will be configured automatically
 
-1. User-configured `cards.mcpServerPath`
-2. Bundled server in extension
-3. Global npm: `npm install -g @lineu/mcp-server`
-4. Local node_modules
+You're ready to start capturing Sparks.
 
-### Configure MCP Server for AI Assistants
+---
 
-**Claude Code / Cursor** (`~/.cursor/mcp.json`):
-```json
-{
-  "mcpServers": {
-    "lineu": {
-      "command": "node",
-      "args": ["/path/to/lineu/packages/mcp-server/dist/index.js"]
-    }
-  }
-}
-```
+## 🎯 Who is Lineu for?
 
-**Claude Desktop** (`claude_desktop_config.json`):
-```json
-{
-  "mcpServers": {
-    "lineu": {
-      "command": "node",
-      "args": ["/path/to/lineu/packages/mcp-server/dist/index.js"]
-    }
-  }
-}
-```
+* Developers learning with AI
+* Researchers and writers
+* Builders who think in questions
+* Anyone who wants AI conversations to *lead somewhere*
 
-Once configured, the AI assistant can use the `capture_context` tool to push learning moments to your editor.
+---
+
+## 🌱 Philosophy
+
+Lineu is not a productivity tool.
+
+It's a **thinking companion**.
+
+We believe the most valuable part of an AI conversation isn't just the answer —
+it's the moment where understanding begins.
+
+Lineu exists to preserve those moments.
+
+---
+
+## 📌 Roadmap
+
+* Claude Desktop / Claude Code support
+* More visual modes
+* Advanced Spark exploration
+* Cross-session knowledge connections
+
+---
+
+## 📝 License
+
+MIT
+
+---
+
+**Lineu**
+Turn questions into sparks.

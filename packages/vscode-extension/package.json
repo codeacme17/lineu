@@ -2,8 +2,9 @@
   "name": "lineu",
   "displayName": "Lineu",
   "version": "0.1.0",
-  "description": "Capture and organize Lineu insights from AI conversations via MCP",
+  "description": "Turn questions into sparks — capture knowledge from AI conversations",
   "publisher": "lineu",
+  "icon": "resources/logo.png",
   "repository": {
     "type": "git",
     "url": "https://github.com/lineu/lineu"
