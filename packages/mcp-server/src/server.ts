@@ -1,6 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { registerCaptureContext } from "./tools/index.js";
+import { registerCaptureContext, registerDeepDive } from "./tools/index.js";
 
 export async function startServer(): Promise<void> {
   try {
@@ -14,6 +14,7 @@ export async function startServer(): Promise<void> {
 
     // Register all tools
     registerCaptureContext(server);
+    registerDeepDive(server);
 
     const transport = new StdioServerTransport();
     await server.connect(transport);

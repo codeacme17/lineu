@@ -83,6 +83,19 @@ After your exploration, call capture_context with:
 Call exactly ONCE.`,
 };
 
+// Generate prompt for deep dive option
+function generateDeepDivePrompt(card: Card, option: string): string {
+  return `/deepdive
+
+Card ID: ${card.id}
+Topic: "${option}"
+
+Original spark: "${card.title}" - ${card.summary}
+
+${card.context ? `Context:\n${card.context}\n` : ""}
+Explore this topic in depth using the deep_dive MCP tool.`;
+}
+
 const RESPARK_PROMPT = `Extract a DIFFERENT insight from this conversation.
 
 The previous card focused on one angle. Now find another valuable perspective:
@@ -154,6 +167,7 @@ export function CardDetailView({
   const [transitionDirection, setTransitionDirection] = useState<"next" | "prev" | null>(null);
   const [hoveredBookmark, setHoveredBookmark] = useState<{ id: string; top: number; title: string } | null>(null);
   const [copiedAction, setCopiedAction] = useState<"deep" | "dislike" | null>(null);
+  const [copiedDeepDiveOption, setCopiedDeepDiveOption] = useState<string | null>(null);
   const [titleHovered, setTitleHovered] = useState(false);
   const viewRef = useRef<HTMLDivElement>(null);
 
@@ -228,6 +242,34 @@ export function CardDetailView({
     }
   }, [activeCard]);
 
+  // Copy deep dive option prompt to clipboard
+  const handleDeepDiveOption = useCallback(async (option: string) => {
+    const prompt = generateDeepDivePrompt(activeCard, option);
+    try {
+      await navigator.clipboard.writeText(prompt);
+      setCopiedDeepDiveOption(option);
+      setTimeout(() => setCopiedDeepDiveOption(null), 1500);
+    } catch {
+      // Fallback for older browsers
+      const textarea = document.createElement("textarea");
+      textarea.value = prompt;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textarea);
+      setCopiedDeepDiveOption(option);
+      setTimeout(() => setCopiedDeepDiveOption(null), 1500);
+    }
+  }, [activeCard]);
+
+  // Compute current deep dive options (from latest dive or original card)
+  const currentDeepDiveOptions = useMemo(() => {
+    if (activeCard.dives?.length) {
+      return activeCard.dives[activeCard.dives.length - 1].deepDiveOptions;
+    }
+    return activeCard.deepDiveOptions;
+  }, [activeCard.dives, activeCard.deepDiveOptions]);
+
   // 底部区域滚轮切换
   useEffect(() => {
     const view = viewRef.current;
@@ -289,7 +331,7 @@ export function CardDetailView({
   return (
     <div className="card-detail-view" ref={viewRef}>
       {/* 顶部 Toast 提示 */}
-      {copiedAction && (
+      {(copiedAction || copiedDeepDiveOption) && (
         <div className="toast-top">
           <span className="toast-icon">✓</span>
           <span>Copied! Paste to AI chat</span>
@@ -417,6 +459,48 @@ export function CardDetailView({
               <div className="card-detail-tags">
                 {activeCard.tags.map((tag) => (
                   <span key={tag} className="card-detail-tag">{tag}</span>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* Dive History Records */}
+          {activeCard.dives && activeCard.dives.length > 0 && (
+            <section className="card-detail-section">
+              <h2>Deep Dive History</h2>
+              {activeCard.dives.map((dive, idx) => (
+                <div key={idx} className="dive-record">
+                  <h3 className="dive-topic">{dive.topic}</h3>
+                  <p className="dive-summary">{dive.summary}</p>
+                  {dive.detail && <Markdown className="dive-detail">{dive.detail}</Markdown>}
+                  <time className="dive-time">
+                    {new Date(dive.createdAt).toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </time>
+                </div>
+              ))}
+            </section>
+          )}
+
+          {/* Deep Dive Options */}
+          {currentDeepDiveOptions && currentDeepDiveOptions.length > 0 && (
+            <section className="card-detail-section">
+              <h2>Deep Dive</h2>
+              <div className="deep-dive-options">
+                {currentDeepDiveOptions.map((option, idx) => (
+                  <button
+                    key={idx}
+                    className={`deep-dive-chip ${copiedDeepDiveOption === option ? "copied" : ""}`}
+                    onClick={() => handleDeepDiveOption(option)}
+                    title="Click to copy prompt"
+                  >
+                    <span className="deep-dive-icon">{copiedDeepDiveOption === option ? "✓" : "⚡"}</span>
+                    <span>{option}</span>
+                  </button>
                 ))}
               </div>
             </section>

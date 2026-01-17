@@ -7,6 +7,20 @@ export type CodeRef = {
   hint?: string;
 };
 
+/** Deep dive exploration record */
+export type DiveRecord = {
+  /** The topic user chose to dive into */
+  topic: string;
+  /** AI's exploration summary */
+  summary: string;
+  /** Detailed exploration content */
+  detail?: string;
+  /** Next level deep dive options */
+  deepDiveOptions?: string[];
+  /** When this dive was created */
+  createdAt: string;
+};
+
 export type Card = {
   id: string;
   type?: CardType;
@@ -22,4 +36,8 @@ export type Card = {
   project?: string;
   /** Original conversation context for respark/deepspark */
   context?: string;
+  /** AI-suggested related topics for deeper exploration (initial) */
+  deepDiveOptions?: string[];
+  /** Chain of deep dive explorations on this card */
+  dives?: DiveRecord[];
 };

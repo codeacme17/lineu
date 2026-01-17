@@ -25,6 +25,16 @@ const CardItemSchema = z.object({
     .max(2)
     .optional()
     .describe("1-2 tags for categorization. MAXIMUM 2 tags."),
+  deepDiveOptions: z
+    .array(z.string())
+    .min(2)
+    .max(4)
+    .describe(
+      "REQUIRED: 2-4 related topics for deeper exploration. MUST be included for each card. " +
+        "Each should be a compelling topic title (5-15 words). " +
+        "Examples: 'Browser vs Node.js Event Loop differences', 'Event Loop × Promise deep dive', " +
+        "'Advanced error handling patterns', 'Performance optimization techniques'"
+    ),
 });
 
 // Note: MCP SDK wraps these with z.object() internally, so we pass plain ZodRawShape
@@ -97,6 +107,8 @@ export function registerCaptureContext(server: McpServer): void {
         createdAt: new Date().toISOString(),
         project: projectName,
         context: rawConversation,
+        deepDiveOptions: input.deepDiveOptions?.slice(0, 4),
+        dives: [],
       }));
 
       // Write to inbox (replaces existing inbox content)

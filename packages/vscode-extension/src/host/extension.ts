@@ -279,8 +279,9 @@ export function deactivate() {
 // ============ Inbox 文件监听 ============
 
 /**
- * Start watching the ~/.lineu directory for inbox.json changes.
+ * Start watching the ~/.lineu directory for inbox.json and cards.json changes.
  * When MCP server writes to inbox.json, we pick up the cards and display them.
+ * When deep_dive updates cards.json or inbox.json, we refresh the webview.
  */
 function startInboxWatcher(): void {
   const baseDir = getBaseStoragePath();
@@ -290,14 +291,62 @@ function startInboxWatcher(): void {
 
   // Watch the entire ~/.lineu directory for changes
   inboxWatcher = fs.watch(baseDir, { recursive: true }, (eventType, filename) => {
-    if (filename && filename.endsWith("inbox.json")) {
-      // Extract project name from path: {project}/inbox.json
-      const projectName = path.dirname(filename);
-      if (projectName && projectName !== ".") {
-        void handleInboxChange(projectName);
-      }
+    if (!filename) return;
+
+    // Extract project name from path: {project}/inbox.json or {project}/cards.json
+    const projectName = path.dirname(filename);
+    if (!projectName || projectName === ".") return;
+
+    if (filename.endsWith("inbox.json")) {
+      void handleInboxChange(projectName);
+    } else if (filename.endsWith("cards.json")) {
+      // cards.json changed (e.g., by deep_dive) - refresh webview if open
+      void handleCardsChange(projectName);
     }
   });
+}
+
+/**
+ * Handle cards.json change - refresh webview to show updated dive records.
+ */
+async function handleCardsChange(projectName: string): Promise<void> {
+  try {
+    const cardsPath = path.join(getBaseStoragePath(), projectName, "cards.json");
+    const inboxPath = path.join(getBaseStoragePath(), projectName, "inbox.json");
+
+    // Read cards from both files
+    const savedCards = await readCardsFile(cardsPath);
+    const inboxCards = await readCardsFile(inboxPath);
+
+    // Merge: inbox cards first (as deck), then saved cards
+    const allCards = [...inboxCards, ...savedCards];
+
+    if (allCards.length === 0) {
+      return;
+    }
+
+    // Get store for saving
+    const store = new CardsStore(getWorkspaceRoot());
+    const projects = await store.getProjects();
+
+    // Refresh webview with updated cards
+    showCardsWebview({
+      cards: allCards,
+      mode: "deal",
+      currentProject: projectName,
+      projects,
+      onFavorite: async (card) => {
+        const result = await store.addCards([card]);
+        if (result.added.length > 0) {
+          vscode.window.showInformationMessage("Card saved.");
+        } else {
+          vscode.window.showInformationMessage("Card already saved.");
+        }
+      },
+    });
+  } catch (error) {
+    // Silently ignore errors
+  }
 }
 
 /**
@@ -338,12 +387,8 @@ async function handleInboxChange(projectName: string): Promise<void> {
       `Received ${cards.length} card(s) from conversation.`
     );
 
-    // Clear inbox after displaying (optional, keeps it clean)
-    try {
-      await fs.promises.unlink(inboxPath);
-    } catch {
-      // Ignore cleanup errors
-    }
+    // Keep inbox.json so deep_dive MCP tool can find the cards
+    // Cards will be saved to cards.json when user favorites them
   } catch (error) {
     // Silently ignore errors (file might be mid-write)
   }

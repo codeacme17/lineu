@@ -7,8 +7,8 @@ You MUST generate cards covering these perspectives:
 1. **Knowledge** (type: `knowledge`) - REQUIRED
    - What concepts were learned? How does it work under the hood?
    - Technical understanding, mental models, TIL moments
-   
-2. **Best Practice** (type: `best_practice`) - REQUIRED  
+
+2. **Best Practice** (type: `best_practice`) - REQUIRED
    - What's the recommended approach? Any improvement suggestions?
    - Better patterns, refactoring ideas, architectural insights
 
@@ -31,9 +31,22 @@ Call capture_context MCP tool ONCE with multiple cards:
 ```
 {
   "cards": [
-    { "type": "knowledge", "title": "...", "summary": "...", "detail": "...", "tags": [...] },
-    { "type": "best_practice", "title": "...", "summary": "...", "detail": "...", "tags": [...] },
-    { "type": "bug", "title": "...", ... }  // if applicable
+    {
+      "type": "knowledge",
+      "title": "...",
+      "summary": "...",
+      "detail": "...",
+      "tags": ["tag1", "tag2"],
+      "deepDiveOptions": ["Related topic 1", "Comparison: X vs Y", "Deep dive into Z"]
+    },
+    {
+      "type": "best_practice",
+      "title": "...",
+      "summary": "...",
+      "detail": "...",
+      "tags": ["tag1"],
+      "deepDiveOptions": ["Alternative approach A", "When NOT to use this pattern"]
+    }
   ],
   "rawConversation": "Full conversation (user + assistant messages)"
 }
@@ -45,4 +58,6 @@ Call capture_context MCP tool ONCE with multiple cards:
 - Add bug cards only if actual issues were discussed
 - Each card should have substantial detail, not surface-level observations
 - Maximum 2 tags per card
+- **REQUIRED: Each card MUST include `deepDiveOptions` array with 2-4 related topics for further exploration**
+  - Examples: "X vs Y comparison", "X internals deep dive", "Advanced X patterns", "X in different frameworks"
 - Include BOTH user messages AND assistant responses in rawConversation
