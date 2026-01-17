@@ -410,7 +410,7 @@ function showCardsWebview(options: {
 }
 
 function getEmbeddedMcpServerPath(extensionPath: string): string | null {
-  const serverPath = path.join(extensionPath, "mcp-server", "dist", "index.js");
+  const serverPath = path.join(extensionPath, "dist", "mcp-server.js");
   return fs.existsSync(serverPath) ? serverPath : null;
 }
 

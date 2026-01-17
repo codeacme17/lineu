@@ -7,17 +7,14 @@ const production = process.argv.includes("--production");
 const watch = process.argv.includes("--watch");
 
 const rootDir = __dirname;
-const mcpSource = path.join(rootDir, "..", "mcp-server", "dist");
-const mcpTarget = path.join(rootDir, "mcp-server", "dist");
+const mcpSource = path.join(rootDir, "..", "mcp-server", "dist", "index.js");
+const mcpTarget = path.join(rootDir, "dist", "mcp-server.js");
 const webviewUiDir = path.join(rootDir, "webview-ui");
 
 async function copyMcpServer() {
-  await fs.rm(mcpTarget, { recursive: true, force: true });
-  await fs.mkdir(mcpTarget, { recursive: true });
-  // 只复制 index.js，不复制 .map 文件
-  const indexJs = path.join(mcpSource, "index.js");
-  const targetJs = path.join(mcpTarget, "index.js");
-  await fs.copyFile(indexJs, targetJs);
+  // 复制 MCP server 到 dist 目录
+  await fs.mkdir(path.dirname(mcpTarget), { recursive: true });
+  await fs.copyFile(mcpSource, mcpTarget);
 }
 
 
