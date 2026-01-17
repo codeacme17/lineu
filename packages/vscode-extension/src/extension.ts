@@ -459,6 +459,23 @@ async function copySparkCommandsToWorkspace(
 }
 
 /**
+ * Install auto-spark rules to user's ~/.cursor/rules/ directory.
+ * With alwaysApply: true, this enables passive/automatic spark generation globally.
+ */
+async function installAutoSparkRules(extensionPath: string): Promise<void> {
+  const sourceFile = path.join(extensionPath, "rules", "auto-spark.cursorrules");
+  const targetDir = path.join(os.homedir(), ".cursor", "rules");
+  const targetFile = path.join(targetDir, "lineu-auto-spark.mdc");
+
+  if (!fs.existsSync(sourceFile)) {
+    throw new Error("Auto-spark rules file not found in extension.");
+  }
+
+  await fs.promises.mkdir(targetDir, { recursive: true });
+  await fs.promises.copyFile(sourceFile, targetFile);
+}
+
+/**
  * Check if Spark commands are configured in the current workspace.
  */
 function checkCommandsConfigured(workspaceRoot: string | undefined): boolean {
@@ -685,6 +702,9 @@ async function handleQuickSetup(
             "cursor"
           );
           results.push("Cursor Commands");
+          // 3. 安装 Auto-Spark Rules 到用户目录
+          await installAutoSparkRules(context.extensionPath);
+          results.push("Auto-Spark Rules");
           break;
         }
         case "claude-desktop": {
@@ -721,19 +741,53 @@ async function handleQuickSetup(
   // 显示结果
   if (results.length > 0) {
     const needsRestart = platforms.includes("cursor") || platforms.includes("claude-desktop");
-    const restartHint = needsRestart ? " Restart your AI tool to activate." : "";
-    vscode.window.showInformationMessage(
-      `Lineu configured: ${results.join(", ")}.${restartHint}`
+    const restartHint = needsRestart ? " Restart Cursor to activate." : "";
+
+    // 简洁的 toast 通知，带查看详情按钮
+    const action = await vscode.window.showInformationMessage(
+      `Lineu setup complete! ${results.length} items configured.${restartHint}`,
+      "View Details"
     );
+
+    // 用户点击 "View Details" 时显示详细信息
+    if (action === "View Details") {
+      const details: string[] = [
+        "Lineu Setup Summary",
+        "=".repeat(40),
+        "",
+      ];
+
+      if (results.includes("Cursor MCP")) {
+        details.push(`✓ MCP Config: ~/.cursor/mcp.json`);
+      }
+      if (results.includes("Claude Desktop MCP")) {
+        const configPath = resolveMcpConfigPath("claude-desktop");
+        details.push(`✓ MCP Config: ${configPath}`);
+      }
+      if (results.includes("Cursor Commands")) {
+        details.push(`✓ Spark Command: ~/.cursor/commands/spark.md`);
+      }
+      if (results.includes("Claude Code Commands")) {
+        details.push(`✓ Spark Command: ~/.claude/commands/spark.md`);
+      }
+      if (results.includes("Auto-Spark Rules")) {
+        details.push(`✓ Auto-Spark Rules: ~/.cursor/rules/lineu-auto-spark.mdc`);
+      }
+
+      if (needsRestart) {
+        details.push("", "⚠️ Please restart Cursor to activate MCP.");
+      }
+
+      // 在输出面板显示详细信息
+      const outputChannel = vscode.window.createOutputChannel("Lineu Setup");
+      outputChannel.clear();
+      outputChannel.appendLine(details.join("\n"));
+      outputChannel.show();
+    }
   }
 
   if (errors.length > 0) {
     vscode.window.showWarningMessage(`Some errors occurred: ${errors.join("; ")}`);
-  }
-
-  // 打开 MCP 配置文件让用户确认
-  if (mcpConfigPath) {
-    await openConfigFile(mcpConfigPath);
   }
 
   // 切换到卡片视图

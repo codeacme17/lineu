@@ -9,8 +9,6 @@ const watch = process.argv.includes("--watch");
 const rootDir = __dirname;
 const mcpSource = path.join(rootDir, "..", "mcp-server", "dist");
 const mcpTarget = path.join(rootDir, "mcp-server", "dist");
-const hooksSource = path.join(rootDir, "..", "..", "hooks");
-const hooksTarget = path.join(rootDir, "hooks");
 const webviewUiDir = path.join(rootDir, "webview-ui");
 
 async function copyMcpServer() {
@@ -22,16 +20,6 @@ async function copyMcpServer() {
   await fs.copyFile(indexJs, targetJs);
 }
 
-async function copyHooks() {
-  await fs.rm(hooksTarget, { recursive: true, force: true });
-  await fs.cp(hooksSource, hooksTarget, { recursive: true });
-  const hookScript = path.join(hooksTarget, "lineu-capture.py");
-  try {
-    await fs.chmod(hookScript, 0o755);
-  } catch {
-    // Ignore chmod errors on unsupported platforms.
-  }
-}
 
 /**
  * 构建 webview-ui React 应用
@@ -109,7 +97,6 @@ async function run() {
     const ctx = await esbuild.context(buildOptions);
     await ctx.watch();
     await copyMcpServer();
-    await copyHooks();
 
     // 启动 webview-ui 开发服务器（可选）
     // 在 watch 模式下，你可以选择手动运行 `pnpm run dev` 来启用热更新
@@ -124,7 +111,6 @@ async function run() {
   await buildWebviewUi();
   await esbuild.build(buildOptions);
   await copyMcpServer();
-  await copyHooks();
 }
 
 run().catch((err) => {

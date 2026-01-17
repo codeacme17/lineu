@@ -118,6 +118,7 @@
     "resources",
     "mcp-server/dist",
     "commands",
+    "rules",
     "webview-ui/dist",
     "README.md"
   ]
