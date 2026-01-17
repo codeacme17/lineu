@@ -428,33 +428,29 @@ function buildMcpConfigSnippet(serverPath: string): string {
 
 /**
  * Copy Spark command files to workspace for the specified platform(s).
- * Same prompt content, different target directories.
  */
 async function copySparkCommandsToWorkspace(
   extensionPath: string,
   workspaceRoot: string,
   platform: "cursor" | "claude" | "both" = "cursor"
 ): Promise<void> {
-  const commands = ["spark.md"];
-  const sourceDir = path.join(extensionPath, "commands");
+  const copyCommands = async (agent: string, targetDir: string): Promise<void> => {
+    const sourceDir = path.join(extensionPath, "dist", "agents", agent, "commands");
+    const sourcePath = path.join(sourceDir, "spark.md");
+    const targetPath = path.join(targetDir, "spark.md");
 
-  const copyToDir = async (targetDir: string): Promise<void> => {
-    await fs.promises.mkdir(targetDir, { recursive: true });
-    for (const cmd of commands) {
-      const sourcePath = path.join(sourceDir, cmd);
-      const targetPath = path.join(targetDir, cmd);
-      if (fs.existsSync(sourcePath)) {
-        await fs.promises.copyFile(sourcePath, targetPath);
-      }
+    if (fs.existsSync(sourcePath)) {
+      await fs.promises.mkdir(targetDir, { recursive: true });
+      await fs.promises.copyFile(sourcePath, targetPath);
     }
   };
 
   if (platform === "cursor" || platform === "both") {
-    await copyToDir(path.join(workspaceRoot, ".cursor", "commands"));
+    await copyCommands("cursor", path.join(workspaceRoot, ".cursor", "commands"));
   }
 
   if (platform === "claude" || platform === "both") {
-    await copyToDir(path.join(workspaceRoot, ".claude", "commands"));
+    await copyCommands("claude-code", path.join(workspaceRoot, ".claude", "commands"));
   }
 }
 
@@ -463,7 +459,7 @@ async function copySparkCommandsToWorkspace(
  * With alwaysApply: true, this enables passive/automatic spark generation globally.
  */
 async function installAutoSparkRules(extensionPath: string): Promise<void> {
-  const sourceFile = path.join(extensionPath, "rules", "auto-spark.cursorrules");
+  const sourceFile = path.join(extensionPath, "dist", "agents", "cursor", "rules", "auto-spark.cursorrules");
   const targetDir = path.join(os.homedir(), ".cursor", "rules");
   const targetFile = path.join(targetDir, "lineu-auto-spark.mdc");
 

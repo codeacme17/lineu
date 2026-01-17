@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "description": "Turn questions into sparks — capture knowledge from AI conversations",
   "publisher": "lineu",
-  "icon": "resources/logo.png",
+  "icon": "dist/resources/logo.png",
   "repository": {
     "type": "git",
     "url": "https://github.com/lineu/lineu"
@@ -17,11 +17,10 @@
     "Other"
   ],
   "scripts": {
-    "copy-assets": "mkdir -p resources && cp ../../assets/pictures/* resources/",
-    "build": "pnpm run copy-assets && node esbuild.js",
-    "build:production": "pnpm run copy-assets && node esbuild.js --production",
-    "watch": "pnpm run copy-assets && node esbuild.js --watch",
-    "clean": "rm -rf dist webview-ui/dist resources",
+    "build": "node esbuild.js",
+    "build:production": "node esbuild.js --production",
+    "watch": "node esbuild.js --watch",
+    "clean": "rm -rf dist webview-ui/dist",
     "dev:webview": "cd webview-ui && pnpm run dev",
     "vscode:prepublish": "pnpm run build:production",
     "package": "vsce package --no-dependencies"
@@ -43,7 +42,7 @@
         {
           "id": "cardsView",
           "title": "Lineu",
-          "icon": "resources/lineu.svg"
+          "icon": "dist/resources/lineu.svg"
         }
       ]
     },
@@ -116,10 +115,6 @@
   "license": "MIT",
   "files": [
     "dist",
-    "resources",
-    "commands",
-    "rules",
-    "webview-ui/dist",
     "README.md"
   ]
 }

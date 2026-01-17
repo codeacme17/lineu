@@ -3,8 +3,6 @@ dist/
 build/
 temp/
 *.vsix
-packages/vscode-extension/resources/
-
 
 .claude
 .cursor
