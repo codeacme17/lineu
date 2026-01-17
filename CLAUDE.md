@@ -39,42 +39,44 @@ This is a pnpm monorepo with three packages:
 
 ```
 packages/
-├── lib/              # @lineu/lib - Shared card types and generation logic (internal)
+├── lib/              # @lineu/lib - Shared card types, generation logic, and storage utilities
 ├── mcp-server/       # @lineu/mcp-server - MCP server exposing capture_context tool
-└── vscode-extension/ # lineu - VSCode extension for spark generation
+└── vscode-extension/ # lineu - VSCode extension for spark generation and display
 ```
 
 ### Data Flow
 
 **Manual flow (extension-initiated):**
-1. **VSCode Extension** captures user selection + workspace context + git diff
-2. Extension invokes **@lineu/lib** `generateCards()` to create cards from diff/context
-3. Cards are stored in `.vscode/knowledge-cards.json` per workspace
+1. VSCode Extension captures user selection + workspace context + git diff
+2. Extension invokes `@lineu/lib` `generateCards()` to create cards
+3. Cards displayed in sidebar webview, saved to `~/.lineu/{project}/cards.json`
 
 **MCP Push flow (AI-initiated):**
-1. AI assistant (Claude Code, etc.) calls MCP `capture_context` tool with `pushToExtension: true`
-2. MCP server writes context to temp file, triggers `{editor}://lineu.lineu/capture?file=...` URI
-3. Extension's URI handler reads file, generates cards, shows webview
+1. AI assistant calls MCP `capture_context` tool with `cards[]` array
+2. MCP server writes cards to `~/.lineu/{project}/inbox.json`
+3. Extension's file watcher detects inbox change, reads cards, shows webview
+
+### Storage Paths
+
+- `~/.lineu/{project}/inbox.json` - New cards from MCP (replaced on each spark)
+- `~/.lineu/{project}/cards.json` - Saved/favorited cards (persistent)
 
 ### Key Components
 
-- **@lineu/lib**: Core card generation - parses git diffs, extracts patterns (functions, classes, config), creates up to 7 cards with stopword filtering and SHA256 deduplication
-- **@lineu/mcp-server**: Stdio-based MCP server using `@modelcontextprotocol/sdk`, Zod validation, supports pushing context to editors via URI handler
-- **lineu**: Extension with URI handler (`onUri` activation) for receiving MCP push, 5-tier MCP server resolution
+- **@lineu/lib**: Card types, diff parsing, pattern extraction (functions, classes, config), SHA256 deduplication, storage path helpers
+- **@lineu/mcp-server**: Stdio-based MCP server using `@modelcontextprotocol/sdk` with Zod validation
+- **lineu**: Extension with fs.watch on `~/.lineu/` for inbox detection, webview UI, onboarding flow
 
 ### MCP `capture_context` Tool
 
-Key parameters for AI-assisted workflow:
-- `type`: Card type - `bug`, `best_practice`, or `knowledge` (triggers different UI styles)
-- `seedText`: Conversation context or summary
-- `diff`: Git diff content (optional)
-- `pushToExtension`: Set `true` to push to editor extension
-- `editor`: Target editor - `cursor` (default), `vscode`, `vscodium`, `windsurf`
-
-**Card type UI styles:**
-- `bug`: Red border and badge
-- `best_practice`: Green border and badge
-- `knowledge`: Blue border and badge
+Input parameters:
+- `cards`: Array of 1-7 cards, each with:
+  - `type`: `bug` | `best_practice` | `knowledge`
+  - `title`: Short title (5-10 words)
+  - `summary`: Brief summary (1-2 sentences)
+  - `detail`: Optional detailed explanation
+  - `tags`: Optional array of 1-2 tags
+- `rawConversation`: Optional full conversation for respark/deepspark
 
 ## Development Workflow
 
@@ -85,7 +87,7 @@ Key parameters for AI-assisted workflow:
 
 ## MCP Server Configuration
 
-For local development, configure your MCP client (Cursor, Claude Desktop):
+For local development, configure your MCP client:
 
 ```json
 {
@@ -99,38 +101,22 @@ For local development, configure your MCP client (Cursor, Claude Desktop):
 ```
 
 - Cursor: `~/.cursor/mcp.json`
-- Claude Desktop: `claude_desktop_config.json`
+- Claude Desktop: `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS)
 
-## Spark Commands (Knowledge Capture)
-
-This project uses Cursor Custom Commands for on-demand knowledge capture.
-
-### Available Commands
+## Spark Commands
 
 | Command | Description |
 |---------|-------------|
-| `/spark` | ✨ Capture knowledge sparks from the conversation |
-| `/respark` | 🔄 Generate different perspectives from the same context |
-| `/deepspark` | 🔍 Deep dive into a topic |
+| `/spark` | Capture knowledge sparks from the conversation |
+| `/respark` | Generate different perspectives from the same context |
+| `/deepspark` | Deep dive into a topic |
 
-### Setup
-
-Copy the Spark commands to your project:
-1. Use the extension command: `Lineu: Copy Spark Commands to Project`
-2. Or manually copy from `.cursor/commands/` in this repo
-
-### How It Works
-
-1. Have a conversation with AI
-2. Type `/spark` to capture knowledge
-3. AI calls `capture_context` MCP tool
-4. Card appears in Lineu sidebar
+Commands are installed globally to `~/.cursor/commands/` or `~/.claude/commands/` via onboarding.
 
 ## Notes
 
 - No test suite or linting configured
 - TypeScript strict mode enabled, target ES2022
 - VSCode extension requires VSCode 1.90.0+
-- Extension must be installed in target editor for URI handler to work
 - Use `pnpm package` in vscode-extension to create .vsix for installation
 - Prefer Chinese for user-facing communication
