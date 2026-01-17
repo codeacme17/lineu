@@ -8,7 +8,7 @@ const watch = process.argv.includes("--watch");
 
 const rootDir = __dirname;
 const distDir = path.join(rootDir, "dist");
-const webviewUiDir = path.join(rootDir, "webview-ui");
+const webviewUiDir = path.join(rootDir, "src", "webview");
 
 // 源文件路径
 const mcpSource = path.join(rootDir, "..", "mcp-server", "dist", "index.js");
@@ -117,7 +117,7 @@ async function ensureWebviewUiDeps() {
 }
 
 const buildOptions = {
-  entryPoints: ["src/extension.ts"],
+  entryPoints: ["src/host/extension.ts"],
   bundle: true,
   outfile: "dist/extension.js",
   external: ["vscode"],
