@@ -1,13 +1,13 @@
 {
   "name": "lineu",
   "displayName": "Lineu",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "description": "Turn questions into sparks — capture knowledge from AI conversations",
   "publisher": "lineu",
   "icon": "resources/logo.png",
   "repository": {
     "type": "git",
-    "url": "https://github.com/lineu/lineu"
+    "url": "https://github.com/codeacme17/lineu"
   },
   "main": "./dist/extension.js",
   "engines": {
