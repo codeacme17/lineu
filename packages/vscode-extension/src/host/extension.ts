@@ -279,8 +279,9 @@ export function deactivate() {
 // ============ Inbox 文件监听 ============
 
 /**
- * Start watching the ~/.lineu directory for inbox.json changes.
+ * Start watching the ~/.lineu directory for inbox.json and cards.json changes.
  * When MCP server writes to inbox.json, we pick up the cards and display them.
+ * When deep_dive updates cards.json or inbox.json, we refresh the webview.
  */
 function startInboxWatcher(): void {
   const baseDir = getBaseStoragePath();
@@ -290,14 +291,62 @@ function startInboxWatcher(): void {
 
   // Watch the entire ~/.lineu directory for changes
   inboxWatcher = fs.watch(baseDir, { recursive: true }, (eventType, filename) => {
-    if (filename && filename.endsWith("inbox.json")) {
-      // Extract project name from path: {project}/inbox.json
-      const projectName = path.dirname(filename);
-      if (projectName && projectName !== ".") {
-        void handleInboxChange(projectName);
-      }
+    if (!filename) return;
+
+    // Extract project name from path: {project}/inbox.json or {project}/cards.json
+    const projectName = path.dirname(filename);
+    if (!projectName || projectName === ".") return;
+
+    if (filename.endsWith("inbox.json")) {
+      void handleInboxChange(projectName);
+    } else if (filename.endsWith("cards.json")) {
+      // cards.json changed (e.g., by deep_dive) - refresh webview if open
+      void handleCardsChange(projectName);
     }
   });
+}
+
+/**
+ * Handle cards.json change - refresh webview to show updated dive records.
+ */
+async function handleCardsChange(projectName: string): Promise<void> {
+  try {
+    const cardsPath = path.join(getBaseStoragePath(), projectName, "cards.json");
+    const inboxPath = path.join(getBaseStoragePath(), projectName, "inbox.json");
+
+    // Read cards from both files
+    const savedCards = await readCardsFile(cardsPath);
+    const inboxCards = await readCardsFile(inboxPath);
+
+    // Merge: inbox cards first (as deck), then saved cards
+    const allCards = [...inboxCards, ...savedCards];
+
+    if (allCards.length === 0) {
+      return;
+    }
+
+    // Get store for saving
+    const store = new CardsStore(getWorkspaceRoot());
+    const projects = await store.getProjects();
+
+    // Refresh webview with updated cards
+    showCardsWebview({
+      cards: allCards,
+      mode: "deal",
+      currentProject: projectName,
+      projects,
+      onFavorite: async (card) => {
+        const result = await store.addCards([card]);
+        if (result.added.length > 0) {
+          vscode.window.showInformationMessage("Card saved.");
+        } else {
+          vscode.window.showInformationMessage("Card already saved.");
+        }
+      },
+    });
+  } catch (error) {
+    // Silently ignore errors
+  }
 }
 
 /**
@@ -338,12 +387,8 @@ async function handleInboxChange(projectName: string): Promise<void> {
       `Received ${cards.length} card(s) from conversation.`
     );
 
-    // Clear inbox after displaying (optional, keeps it clean)
-    try {
-      await fs.promises.unlink(inboxPath);
-    } catch {
-      // Ignore cleanup errors
-    }
+    // Keep inbox.json so deep_dive MCP tool can find the cards
+    // Cards will be saved to cards.json when user favorites them
   } catch (error) {
     // Silently ignore errors (file might be mid-write)
   }
@@ -410,7 +455,7 @@ function showCardsWebview(options: {
 }
 
 function getEmbeddedMcpServerPath(extensionPath: string): string | null {
-  const serverPath = path.join(extensionPath, "mcp-server", "dist", "index.js");
+  const serverPath = path.join(extensionPath, "dist", "mcp-server.js");
   return fs.existsSync(serverPath) ? serverPath : null;
 }
 
@@ -428,34 +473,47 @@ function buildMcpConfigSnippet(serverPath: string): string {
 
 /**
  * Copy Spark command files to workspace for the specified platform(s).
- * Same prompt content, different target directories.
  */
 async function copySparkCommandsToWorkspace(
   extensionPath: string,
   workspaceRoot: string,
   platform: "cursor" | "claude" | "both" = "cursor"
 ): Promise<void> {
-  const commands = ["spark.md"];
-  const sourceDir = path.join(extensionPath, "commands");
+  const copyCommands = async (agent: string, targetDir: string): Promise<void> => {
+    const sourceDir = path.join(extensionPath, "dist", "agents", agent, "commands");
+    const sourcePath = path.join(sourceDir, "spark.md");
+    const targetPath = path.join(targetDir, "spark.md");
 
-  const copyToDir = async (targetDir: string): Promise<void> => {
-    await fs.promises.mkdir(targetDir, { recursive: true });
-    for (const cmd of commands) {
-      const sourcePath = path.join(sourceDir, cmd);
-      const targetPath = path.join(targetDir, cmd);
-      if (fs.existsSync(sourcePath)) {
-        await fs.promises.copyFile(sourcePath, targetPath);
-      }
+    if (fs.existsSync(sourcePath)) {
+      await fs.promises.mkdir(targetDir, { recursive: true });
+      await fs.promises.copyFile(sourcePath, targetPath);
     }
   };
 
   if (platform === "cursor" || platform === "both") {
-    await copyToDir(path.join(workspaceRoot, ".cursor", "commands"));
+    await copyCommands("cursor", path.join(workspaceRoot, ".cursor", "commands"));
   }
 
   if (platform === "claude" || platform === "both") {
-    await copyToDir(path.join(workspaceRoot, ".claude", "commands"));
+    await copyCommands("claude-code", path.join(workspaceRoot, ".claude", "commands"));
   }
+}
+
+/**
+ * Install auto-spark rules to user's ~/.cursor/rules/ directory.
+ * With alwaysApply: true, this enables passive/automatic spark generation globally.
+ */
+async function installAutoSparkRules(extensionPath: string): Promise<void> {
+  const sourceFile = path.join(extensionPath, "dist", "agents", "cursor", "rules", "auto-spark.cursorrules");
+  const targetDir = path.join(os.homedir(), ".cursor", "rules");
+  const targetFile = path.join(targetDir, "lineu-auto-spark.mdc");
+
+  if (!fs.existsSync(sourceFile)) {
+    throw new Error("Auto-spark rules file not found in extension.");
+  }
+
+  await fs.promises.mkdir(targetDir, { recursive: true });
+  await fs.promises.copyFile(sourceFile, targetFile);
 }
 
 /**
@@ -685,6 +743,9 @@ async function handleQuickSetup(
             "cursor"
           );
           results.push("Cursor Commands");
+          // 3. 安装 Auto-Spark Rules 到用户目录
+          await installAutoSparkRules(context.extensionPath);
+          results.push("Auto-Spark Rules");
           break;
         }
         case "claude-desktop": {
@@ -721,19 +782,53 @@ async function handleQuickSetup(
   // 显示结果
   if (results.length > 0) {
     const needsRestart = platforms.includes("cursor") || platforms.includes("claude-desktop");
-    const restartHint = needsRestart ? " Restart your AI tool to activate." : "";
-    vscode.window.showInformationMessage(
-      `Lineu configured: ${results.join(", ")}.${restartHint}`
+    const restartHint = needsRestart ? " Restart Cursor to activate." : "";
+
+    // 简洁的 toast 通知，带查看详情按钮
+    const action = await vscode.window.showInformationMessage(
+      `Lineu setup complete! ${results.length} items configured.${restartHint}`,
+      "View Details"
     );
+
+    // 用户点击 "View Details" 时显示详细信息
+    if (action === "View Details") {
+      const details: string[] = [
+        "Lineu Setup Summary",
+        "=".repeat(40),
+        "",
+      ];
+
+      if (results.includes("Cursor MCP")) {
+        details.push(`✓ MCP Config: ~/.cursor/mcp.json`);
+      }
+      if (results.includes("Claude Desktop MCP")) {
+        const configPath = resolveMcpConfigPath("claude-desktop");
+        details.push(`✓ MCP Config: ${configPath}`);
+      }
+      if (results.includes("Cursor Commands")) {
+        details.push(`✓ Spark Command: ~/.cursor/commands/spark.md`);
+      }
+      if (results.includes("Claude Code Commands")) {
+        details.push(`✓ Spark Command: ~/.claude/commands/spark.md`);
+      }
+      if (results.includes("Auto-Spark Rules")) {
+        details.push(`✓ Auto-Spark Rules: ~/.cursor/rules/lineu-auto-spark.mdc`);
+      }
+
+      if (needsRestart) {
+        details.push("", "⚠️ Please restart Cursor to activate MCP.");
+      }
+
+      // 在输出面板显示详细信息
+      const outputChannel = vscode.window.createOutputChannel("Lineu Setup");
+      outputChannel.clear();
+      outputChannel.appendLine(details.join("\n"));
+      outputChannel.show();
+    }
   }
 
   if (errors.length > 0) {
     vscode.window.showWarningMessage(`Some errors occurred: ${errors.join("; ")}`);
-  }
-
-  // 打开 MCP 配置文件让用户确认
-  if (mcpConfigPath) {
-    await openConfigFile(mcpConfigPath);
   }
 
   // 切换到卡片视图

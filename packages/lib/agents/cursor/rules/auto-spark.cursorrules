@@ -1,0 +1,47 @@
+---
+alwaysApply: true
+---
+
+# Lineu Auto-Spark (REQUIRED)
+
+You MUST use the `capture_context` MCP tool to save valuable insights.
+
+## MANDATORY: Call capture_context when ANY of these occur:
+
+1. **You explained HOW something works** (not just WHAT)
+   - Technical mechanisms, internals, architecture
+   - Example: Event loop, React rendering, async/await
+
+2. **You debugged or fixed a bug**
+   - Root cause analysis
+   - Non-obvious solutions
+
+3. **You suggested a better approach**
+   - Refactoring, patterns, best practices
+
+## HOW TO CALL
+
+After your explanation, ALWAYS add this tool call:
+
+```
+capture_context({
+  "cards": [{
+    "type": "knowledge",  // or "bug" or "best_practice"
+    "title": "Brief title of the insight",
+    "summary": "1-2 sentence summary",
+    "detail": "Detailed explanation",
+    "tags": ["tag1", "tag2"]
+  }]
+})
+```
+
+## RULES
+
+- Call AFTER completing your response
+- Generate 1-2 cards only
+- DO NOT ask permission, just call it
+- DO NOT announce you're calling it
+
+## CURRENT TASK
+
+If you just explained Event Loop, microtasks, or macrotasks → CALL capture_context NOW with a knowledge card.

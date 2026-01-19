@@ -34,7 +34,7 @@ export class CardsViewProvider implements vscode.WebviewViewProvider {
     webviewView.webview.options = {
       enableScripts: true,
       localResourceRoots: [
-        vscode.Uri.joinPath(this.extensionUri, "webview-ui", "dist"),
+        vscode.Uri.joinPath(this.extensionUri, "dist", "webview"),
       ],
     };
 
@@ -145,10 +145,10 @@ export class CardsViewProvider implements vscode.WebviewViewProvider {
 
   private buildHtml(webview: vscode.Webview): string {
     const scriptUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(this.extensionUri, "webview-ui", "dist", "main.js")
+      vscode.Uri.joinPath(this.extensionUri, "dist", "webview", "main.js")
     );
     const styleUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(this.extensionUri, "webview-ui", "dist", "style.css")
+      vscode.Uri.joinPath(this.extensionUri, "dist", "webview", "style.css")
     );
 
     const nonce = createNonce();

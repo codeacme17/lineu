@@ -39,9 +39,15 @@ This is a pnpm monorepo with three packages:
 
 ```
 packages/
-├── lib/              # @lineu/lib - Shared card types, generation logic, and storage utilities
+├── lib/              # @lineu/lib - Shared card types, generation logic, storage utilities, and agent configs
+│   └── agents/       # AI agent configurations (copied to extension during build)
+│       ├── cursor/   # Cursor commands and rules
+│       └── claude-code/  # Claude Code commands
 ├── mcp-server/       # @lineu/mcp-server - MCP server exposing capture_context tool
 └── vscode-extension/ # lineu - VSCode extension for spark generation and display
+    └── src/
+        ├── host/     # Extension host code (Node.js)
+        └── webview/  # Webview UI (React + Vite)
 ```
 
 ### Data Flow
@@ -64,8 +70,10 @@ packages/
 ### Key Components
 
 - **@lineu/lib**: Card types, diff parsing, pattern extraction (functions, classes, config), SHA256 deduplication, storage path helpers
+- **@lineu/lib/agents**: AI agent configurations - Cursor rules (`auto-spark.cursorrules`), slash commands (`/spark`, `/respark`, `/deepspark`)
 - **@lineu/mcp-server**: Stdio-based MCP server using `@modelcontextprotocol/sdk` with Zod validation
-- **lineu**: Extension with fs.watch on `~/.lineu/` for inbox detection, webview UI, onboarding flow
+- **lineu (host)**: Extension host with fs.watch on `~/.lineu/` for inbox detection, onboarding flow, MCP config management
+- **lineu (webview)**: React app for displaying cards, built with Vite, outputs to `dist/webview/`
 
 ### MCP `capture_context` Tool
 
@@ -111,7 +119,23 @@ For local development, configure your MCP client:
 | `/respark` | Generate different perspectives from the same context |
 | `/deepspark` | Deep dive into a topic |
 
-Commands are installed globally to `~/.cursor/commands/` or `~/.claude/commands/` via onboarding.
+Commands source: `packages/lib/agents/{cursor,claude-code}/commands/`
+Installed to: `~/.cursor/commands/` or `~/.claude/commands/` via onboarding
+
+### Auto-Spark Rules
+
+Cursor rules with `alwaysApply: true` can trigger automatic spark capture:
+- Source: `packages/lib/agents/cursor/rules/auto-spark.cursorrules`
+- Installed to: `~/.cursor/rules/` via onboarding
+
+## Build Output
+
+Extension `dist/` contains all assets after build:
+- `extension.js` - Bundled extension host
+- `mcp-server.js` - Bundled MCP server (copied from mcp-server package)
+- `agents/` - AI agent configs (copied from lib/agents)
+- `resources/` - Icons and images (copied from assets/pictures)
+- `webview/` - Built React app (main.js, style.css)
 
 ## Notes
 

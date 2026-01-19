@@ -1,3 +1,17 @@
+/** Deep dive exploration record */
+export interface DiveRecord {
+  /** The topic user chose to dive into */
+  topic: string;
+  /** AI's exploration summary */
+  summary: string;
+  /** Detailed exploration content */
+  detail?: string;
+  /** Next level deep dive options */
+  deepDiveOptions?: string[];
+  /** When this dive was created */
+  createdAt: string;
+}
+
 // Card 类型定义，与 @lineu/lib 保持一致
 export interface Card {
   id: string;
@@ -12,6 +26,10 @@ export interface Card {
   project?: string;
   /** Original conversation context for respark/deepspark (not displayed) */
   context?: string;
+  /** AI-suggested related topics for deeper exploration (initial) */
+  deepDiveOptions?: string[];
+  /** Chain of deep dive explorations on this card */
+  dives?: DiveRecord[];
 }
 
 export type WebviewMode = "deal" | "collection";

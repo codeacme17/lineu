@@ -7,31 +7,59 @@ const production = process.argv.includes("--production");
 const watch = process.argv.includes("--watch");
 
 const rootDir = __dirname;
-const mcpSource = path.join(rootDir, "..", "mcp-server", "dist");
-const mcpTarget = path.join(rootDir, "mcp-server", "dist");
-const hooksSource = path.join(rootDir, "..", "..", "hooks");
-const hooksTarget = path.join(rootDir, "hooks");
-const webviewUiDir = path.join(rootDir, "webview-ui");
+const distDir = path.join(rootDir, "dist");
+const webviewUiDir = path.join(rootDir, "src", "webview");
 
-async function copyMcpServer() {
-  await fs.rm(mcpTarget, { recursive: true, force: true });
-  await fs.mkdir(mcpTarget, { recursive: true });
-  // 只复制 index.js，不复制 .map 文件
-  const indexJs = path.join(mcpSource, "index.js");
-  const targetJs = path.join(mcpTarget, "index.js");
-  await fs.copyFile(indexJs, targetJs);
-}
+// 源文件路径
+const mcpSource = path.join(rootDir, "..", "mcp-server", "dist", "index.js");
+const agentsSource = path.join(rootDir, "..", "lib", "agents");
+const resourcesSource = path.join(rootDir, "..", "..", "assets", "pictures");
+const webviewSource = path.join(webviewUiDir, "dist");
 
-async function copyHooks() {
-  await fs.rm(hooksTarget, { recursive: true, force: true });
-  await fs.cp(hooksSource, hooksTarget, { recursive: true });
-  const hookScript = path.join(hooksTarget, "lineu-capture.py");
-  try {
-    await fs.chmod(hookScript, 0o755);
-  } catch {
-    // Ignore chmod errors on unsupported platforms.
+// 目标路径（全部在 dist 下）
+const mcpTarget = path.join(distDir, "mcp-server.js");
+const agentsTarget = path.join(distDir, "agents");
+const resourcesTarget = path.join(distDir, "resources");
+const webviewTarget = path.join(distDir, "webview");
+
+/**
+ * 递归复制目录
+ */
+async function copyDir(src, dest) {
+  await fs.mkdir(dest, { recursive: true });
+  const entries = await fs.readdir(src, { withFileTypes: true });
+  for (const entry of entries) {
+    const srcPath = path.join(src, entry.name);
+    const destPath = path.join(dest, entry.name);
+    if (entry.isDirectory()) {
+      await copyDir(srcPath, destPath);
+    } else {
+      await fs.copyFile(srcPath, destPath);
+    }
   }
 }
+
+/**
+ * 复制所有资源到 dist 目录
+ */
+async function copyAssets() {
+  // MCP server
+  await fs.mkdir(distDir, { recursive: true });
+  await fs.copyFile(mcpSource, mcpTarget);
+
+  // Agents 配置
+  await fs.rm(agentsTarget, { recursive: true, force: true });
+  await copyDir(agentsSource, agentsTarget);
+
+  // Resources (图片等)
+  await fs.rm(resourcesTarget, { recursive: true, force: true });
+  await copyDir(resourcesSource, resourcesTarget);
+
+  // Webview UI
+  await fs.rm(webviewTarget, { recursive: true, force: true });
+  await copyDir(webviewSource, webviewTarget);
+}
+
 
 /**
  * 构建 webview-ui React 应用
@@ -89,7 +117,7 @@ async function ensureWebviewUiDeps() {
 }
 
 const buildOptions = {
-  entryPoints: ["src/extension.ts"],
+  entryPoints: ["src/host/extension.ts"],
   bundle: true,
   outfile: "dist/extension.js",
   external: ["vscode"],
@@ -108,23 +136,19 @@ async function run() {
     // 并行启动 extension 和 webview-ui 的 watch
     const ctx = await esbuild.context(buildOptions);
     await ctx.watch();
-    await copyMcpServer();
-    await copyHooks();
 
-    // 启动 webview-ui 开发服务器（可选）
-    // 在 watch 模式下，你可以选择手动运行 `pnpm run dev` 来启用热更新
-    // 这里我们只构建一次
+    // 构建 webview-ui 并复制所有资源
     await buildWebviewUi();
+    await copyAssets();
 
     console.log("Watching for changes...");
     return;
   }
 
-  // 生产构建：先构建 webview-ui，再构建扩展
+  // 生产构建：先构建 webview-ui，再构建扩展，最后复制资源
   await buildWebviewUi();
   await esbuild.build(buildOptions);
-  await copyMcpServer();
-  await copyHooks();
+  await copyAssets();
 }
 
 run().catch((err) => {
