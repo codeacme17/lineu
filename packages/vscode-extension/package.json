@@ -1,7 +1,7 @@
 {
   "name": "lineu",
   "displayName": "Lineu",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Turn questions into sparks — capture knowledge from AI conversations",
   "publisher": "lineu",
   "icon": "dist/resources/logo.png",
